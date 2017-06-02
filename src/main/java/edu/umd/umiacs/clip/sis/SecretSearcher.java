@@ -39,19 +39,19 @@ import org.xml.sax.SAXException;
  */
 public class SecretSearcher {
 
-    @Parameter(names = {"-?", "-h", "--help"}, help = true)
+    @Parameter(names = {"-?", "-h", "--help"}, help = true, description = "Display this help.")
     private boolean help;
 
-    @Parameter(names = "--host", description = "IMAP host address")
+    @Parameter(names = "--host", description = "IMAP host address.")
     private String host = "imap.gmail.com";
 
-    @Parameter(names = "--port", description = "IMAP host part number")
+    @Parameter(names = "--port", description = "IMAP host part number.")
     private int port = 993;
 
-    @Parameter(names = {"--username"}, description = "Username")
+    @Parameter(names = {"--username"}, description = "Username.")
     private String username;
 
-    @Parameter(names = "--password", description = "Password")
+    @Parameter(names = "--password", description = "Password.")
     private String password;
 
     @Parameter(names = "--terms", description = "Search terms, separated by comma.", required = true, listConverter = TermsConverter.class)
