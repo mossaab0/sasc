@@ -7,5 +7,4 @@
 ## Installation
     git clone https://github.com/mossaab0/search-in-secrets.git
     cd search-in-secrets
-    chmod +x install.sh
     ./install.sh
