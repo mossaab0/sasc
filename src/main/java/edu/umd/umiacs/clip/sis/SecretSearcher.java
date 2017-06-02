@@ -38,6 +38,9 @@ import org.xml.sax.SAXException;
  */
 public class SecretSearcher {
 
+    @Parameter(names = {"-?", "-h", "--help"}, help = true)
+    private boolean help;
+
     @Parameter(names = "--host", description = "IMAP host address")
     private String host = "imap.gmail.com";
 
@@ -50,16 +53,16 @@ public class SecretSearcher {
     @Parameter(names = "--password", description = "Password")
     private String password;
 
-    @Parameter(names = "--terms", description = "Search terms", required = true, listConverter = TermsConverter.class)
+    @Parameter(names = "--terms", description = "Search terms, separated by comma.", required = true, listConverter = TermsConverter.class)
     private List<String> terms;
 
     @Parameter(names = "--mode", description = "Retrieval mode. Supported values: search, filter.", required = true, validateWith = RetrievalModeValidator.class)
     private String mode;
 
-    @Parameter(names = "--stem", description = "Use stemming. Works only with --mode filter. Default set to false.")
+    @Parameter(names = "--stem", description = "Use stemming. Works only with --mode filter.")
     private boolean stemming = false;
 
-    @Parameter(names = "--verbosity", description = "Verbosity level. Silent = 0, verbose = 1 (default), print content to stdout = 2.")
+    @Parameter(names = "--verbosity", description = "Verbosity level. Silent = 0, verbose = 1, print content to stdout = 2.")
     private int verbosity = 1;
 
     @Parameter(names = "--output", description = "Output folder (absolute path).", validateWith = OutputValidator.class)
@@ -205,14 +208,16 @@ public class SecretSearcher {
 
     public static void main(String[] args) throws Exception {
         SecretSearcher searcher = new SecretSearcher();
+        JCommander cmd = JCommander.newBuilder().
+                addObject(searcher).
+                defaultProvider(DEFAULT_PROVIDER).
+                programName("./run.sh").
+                build();
         try {
-            JCommander.newBuilder()
-                    .addObject(searcher)
-                    .defaultProvider(DEFAULT_PROVIDER)
-                    .build()
-                    .parse(args);
+            cmd.parse(args);
         } catch (ParameterException e) {
             System.err.println(e.getMessage());
+            cmd.usage();
             System.exit(1);
         }
         searcher.run();

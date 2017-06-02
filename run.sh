@@ -1,1 +1,1 @@
-echo $*
+java -cp classpath=target/search-in-secrets-1.0-SNAPSHOT.jar:target/lib/* edu.umd.umiacs.clip.sis.SecretSearcher $*
