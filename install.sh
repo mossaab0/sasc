@@ -16,3 +16,4 @@ rm -rf tools
 
 cd search-in-secrets
 mvn install
+chmod +x run.sh
