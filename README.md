@@ -18,5 +18,30 @@ You might need to go to https://myaccount.google.com/security?pli=1#connectedapp
     cd search-in-secrets
     ./install.sh
 
-## Execution
-This package currently two retrieval modes. The first, **search**, uses the IMAP search protocol. That is, the terms are sent to the IMAP server, and we 
+## Usage
+    ./run.sh [options]
+      Options:
+        -?, -h, --help
+          Display this help.
+        --host
+          IMAP host address.
+          Default: imap.gmail.com
+      * --mode
+          Retrieval mode. Supported values: search, filter.
+        --output
+          Output folder (absolute path).
+        --password
+          Password.
+        --port
+          IMAP host part number.
+          Default: 993
+        --stem
+          Use stemming. Works only with --mode filter.
+          Default: false
+      * --terms
+          Search terms, separated by comma.
+        --username
+          Username.
+        --verbosity
+          Verbosity level. Silent = 0, verbose = 1, print content to stdout = 2.
+          Default: 2
