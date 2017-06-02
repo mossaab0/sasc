@@ -6,6 +6,8 @@
   - The first, **search** uses the IMAP search protocol. That is, the terms are sent to the IMAP server, and we return whatever that server returns to us.
   - The second, **filter** iterates over *ALL* messages in the email, extracts text (including from attachments when possible, using Tika), and checks whether any term is contained in the extracted text. By default, both of the terms and the extracted text go through Lucene's StandardAnalyzer tokenizer with an empty stop word. Optionally, Porter stemming can be applied on both (with the *--stem* option).
 
+- The text of the retrieved emails (including content extracted from attachments, when possible) is by default printed to STDIN, and can be saved to an empty (or nonexistent) folder, one email per file.
+
 ## System Requirements
 - Java 8 JDK
 - Maven
