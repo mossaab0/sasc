@@ -64,7 +64,7 @@ public class SecretSearcher {
     private boolean stemming = false;
 
     @Parameter(names = "--verbosity", description = "Verbosity level. Silent = 0, verbose = 1, print content to stdout = 2.")
-    private int verbosity = 1;
+    private int verbosity = 2;
 
     @Parameter(names = "--output", description = "Output folder (absolute path).", validateWith = OutputValidator.class)
     private String output;
@@ -91,7 +91,8 @@ public class SecretSearcher {
             store = Session.getInstance(System.getProperties(), null).getStore(url);
             store.connect();
         } catch (MessagingException e) {
-            throw new RuntimeException(e);
+            System.err.println(e.getMessage());
+            System.exit(1);
         }
         return this;
     }
