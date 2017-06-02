@@ -7,6 +7,7 @@ import com.beust.jcommander.ParameterException;
 import edu.umd.umiacs.clip.tools.io.AllFiles;
 import edu.umd.umiacs.clip.tools.lang.LuceneUtils;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import static java.util.Arrays.asList;
 import java.util.HashSet;
@@ -71,7 +72,10 @@ public class SecretSearcher {
     private static final IDefaultProvider DEFAULT_PROVIDER = (String optionName) -> {
         Properties properties = new Properties();
         try {
-            properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("user.properties"));
+            InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("user.properties");
+            if (is != null) {
+                properties.load(is);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
