@@ -9,8 +9,8 @@
 - The text of the retrieved emails (including content extracted from attachments, when possible) is by default printed to STDIN, and can be saved to an empty (or nonexistent) folder, one file per email.
 
 ## System Requirements
-- Java 8 JDK
-- Maven
+- To compile the app with all of its dependencies, you need to install **Java 8 JDK** and **Apache Maven**. [Here](https://www.twilio.com/blog/2017/01/install-java-8-apache-maven-google-web-toolkit-windows-10.html) is a tutorial that shows how to do so on Windows 10 (you do **not** need to do the third step of installing Google Web Toolkit).
+- To run the app, you only need **Java 8 JRE**. That is you can copy the compiled app from a machine that have the compilation requirements to another machine that has the JRE without JDK nor Maven.
 
 ## Configure Gmail Account
 By default, gmail won't allow the app to access your email. Here are some options to address this security restriction:
