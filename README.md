@@ -16,7 +16,6 @@
 By default, gmail won't allow the app to access your email. Here are some options to address this security restriction:
 
  - Option 1:
- 
   1. Go to https://myaccount.google.com/security
   2. Enable **2-Step Verification**
   3. Click on **App Password**
@@ -25,7 +24,6 @@ By default, gmail won't allow the app to access your email. Here are some option
   6. You will see a 16-character password. Use this password instead of your regular one.
 
  - Option 2:
- 
   1. Go to https://myaccount.google.com/security?pli=1#connectedapps
   2. Enable **Allow less secure apps**
 
