@@ -24,7 +24,6 @@ import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.Session;
 import javax.mail.Store;
-import javax.mail.URLName;
 import javax.mail.internet.MimeMessage;
 import javax.mail.search.BodyTerm;
 import javax.mail.search.OrTerm;
@@ -87,9 +86,8 @@ public class SecretSearcher {
 
     public SecretSearcher connect() {
         try {
-            URLName url = new URLName("imaps", host, port, "", username, password);
-            store = Session.getInstance(System.getProperties(), null).getStore(url);
-            store.connect();
+            store = Session.getInstance(System.getProperties(), null).getStore("imaps");
+            store.connect(host, port, username, password);
         } catch (MessagingException e) {
             System.err.println(e.getMessage());
             System.exit(1);
@@ -97,7 +95,7 @@ public class SecretSearcher {
         return this;
     }
 
-    public void getContent(Part part, StringBuilder sb) throws MessagingException, IOException, TikaException, SAXException {
+    public StringBuilder getContent(Part part, StringBuilder sb) throws MessagingException, IOException, TikaException, SAXException {
         if (part instanceof Message) {
             sb.append("Subject: ").append(((Message) part).getSubject()).append("\n");
         }
@@ -119,12 +117,12 @@ public class SecretSearcher {
             sb.append("Body (").append(part.getContentType().split(";")[0]).
                     append("):\n").append(content.toString().trim()).append("\n");
         }
+        return sb;
     }
 
     public String getContent(Part part) throws MessagingException, IOException, TikaException, SAXException {
         StringBuilder sb = new StringBuilder();
-        getContent(part, sb);
-        return sb.toString();
+        return getContent(part, sb).toString();
     }
 
     public List<String> search() throws MessagingException, IOException, TikaException, SAXException {
@@ -218,6 +216,7 @@ public class SecretSearcher {
                 defaultProvider(DEFAULT_PROVIDER).
                 programName("./run.sh").
                 build();
+        cmd.usage();
         try {
             cmd.parse(args);
         } catch (ParameterException e) {
