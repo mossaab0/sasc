@@ -95,36 +95,6 @@ public class SecretSearcher {
         return this;
     }
 
-    public StringBuilder getContent(Part part, StringBuilder sb) throws MessagingException, IOException, TikaException, SAXException {
-        if (part instanceof Message) {
-            sb.append("Subject: ").append(((Message) part).getSubject()).append("\n");
-        }
-        Object content = part.getContent();
-        if (content instanceof Multipart) {
-            Multipart multi = (Multipart) content;
-            for (int i = 0; i < multi.getCount(); i++) {
-                getContent(multi.getBodyPart(i), sb);
-            }
-        } else if (content instanceof MimeMessage) {
-            MimeMessage mime = (MimeMessage) content;
-            sb.append("Mime (").append(part.getContentType().split(";")[0]).
-                    append("):\n").append(mime.getContent().toString().trim()).append("\n");
-        } else if (part.getFileName() != null) {
-            sb.append("File (").append(part.getFileName()).append("):\n").
-                    append(new Tika().parseToString(part.getInputStream()).trim()).
-                    append("\n");
-        } else {
-            sb.append("Body (").append(part.getContentType().split(";")[0]).
-                    append("):\n").append(content.toString().trim()).append("\n");
-        }
-        return sb;
-    }
-
-    public String getContent(Part part) throws MessagingException, IOException, TikaException, SAXException {
-        StringBuilder sb = new StringBuilder();
-        return getContent(part, sb).toString();
-    }
-
     public List<String> search() throws MessagingException, IOException, TikaException, SAXException {
         OrTerm or = new OrTerm(new SubjectTerm(terms.get(0)), new BodyTerm(terms.get(0)));
         for (int i = 1; i < terms.size(); i++) {
@@ -144,7 +114,7 @@ public class SecretSearcher {
                         if (verbosity == 1) {
                             System.out.println("Retrieved email: " + id);
                         }
-                        String content = getContent(message);
+                        String content = new MessageConverter(message).toString();
                         if (verbosity == 2) {
                             System.out.println("Content of email: " + id);
                             System.out.println(content + "\n");
@@ -175,7 +145,7 @@ public class SecretSearcher {
                     String id = headers == null ? (message.getSubject() + "\t" + message.getSentDate().getTime()) : headers[0];
                     if (!seen.contains(id)) {
                         seen.add(id);
-                        String content = getContent(message);
+                        String content =  new MessageConverter(message).toString();
                         if (Stream.of(content.split("\\s+")).
                                 map(LuceneUtils::tokenizeStopped).distinct().parallel().
                                 anyMatch(analyzedTerms::contains)) {

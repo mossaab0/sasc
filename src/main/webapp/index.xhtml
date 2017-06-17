@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:c="http://java.sun.com/jsp/jstl/core">
+    <h:head>
+        <title>Search in Secrets</title>
+        <style>
+            .ui-widget {font-size: 1em !important}
+            .ui-menu .ui-menu-parent .ui-menu-child {width: 25em !important}
+            .ui-layout-north {
+                z-index:20 !important;
+                overflow:visible !important;
+            }
+
+            .ui-layout-north .ui-layout-unit-content {
+                overflow:visible !important;
+            }
+
+            .ui-fileupload-content {
+                display: none;
+            }
+
+            .ui-fileupload-buttonbar {
+                padding: 0 !important;
+                width: auto !important;
+            }
+
+            .ui-fileupload-choose {
+                margin: 0 !important;
+            }
+
+            .ui-fileupload {
+                float: left !important;
+            }
+
+            .ui-fileupload-buttonbar {
+                margin: 0 !important;
+            }
+        </style>
+    </h:head>
+    <h:body>
+        <p:growl id="growl"/>
+        <p:ajaxStatus onstart="startHandler()" oncomplete="endHandler()"/>  
+        <script>
+            var ajaxInProgress;
+            function startHandler() {
+                ajaxInProgress = setTimeout(function () {
+                    PF('statusDialog').show();
+                }, 200);
+            }
+            function endHandler() {
+                clearTimeout(ajaxInProgress);
+                PF('statusDialog').hide();
+                ajaxInProgress = null;
+            }
+        </script>
+        <p:dialog modal="true" widgetVar="statusDialog" showHeader="false" draggable="false" closable="false" resizable="false">
+            <p:graphicImage url="ajax-loader.gif" />
+        </p:dialog>
+        <p:layout fullPage = "true">
+            <p:layoutUnit position="north" size="310" style="z-index: 2000">
+                <h:form>  
+                    <p:growl id="messages"/>
+                    <p:menubar id="menubar">
+                        <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="form body"/>
+                        <p:submenu label="ePadd Word List">
+                            <c:forEach var="lexicon" items="#{applicationBean.lexicons}">
+                                <p:submenu label="#{lexicon.key}">
+                                    <c:forEach var="list" items="#{lexicon.value}">
+                                        <p:menuitem value="#{list.key}" title="#{list.value}" actionListener="#{lazyView.filter(list.value)}" update="form body"/>
+                                    </c:forEach>
+                                </p:submenu>
+                            </c:forEach>
+                        </p:submenu>
+                        <p:submenu label="Model">
+                            <p:menuitem value="Train" actionListener="#{applicationBean.train}" disabled="#{!applicationBean.trainingEnabled}" update="menubar"/>
+                            <p:menuitem value="Predict" actionListener="#{lazyView.predict}" update="form body" disabled="#{!applicationBean.predictionEnabled}"/>
+                            <p:menuitem value="Active Learning" actionListener="#{lazyView.activeLearning}" update="form body"/>
+                            <p:menuitem value="Export" ajax="false" disabled="#{!applicationBean.predictionEnabled}">
+                                <p:fileDownload value="#{applicationBean.file}" />
+                            </p:menuitem>
+                            <p:menuitem disabled="true">
+                                <p:fileUpload fileUploadListener="#{applicationBean.handleFileUpload}" mode="advanced" auto="true" label="Import" update="messages" disabled="true"/>
+                            </p:menuitem>
+                        </p:submenu>
+                        <f:facet name="options">
+                            <p:fileUpload fileUploadListener="#{applicationBean.handleFileUpload}" auto="true" label="Import Model" update="messages menubar"/>
+                            <p:inputText value="#{lazyView.query}" placeholder="Search"/>
+                            <p:commandButton icon="ui-icon-search" actionListener="#{lazyView.submit}" update="form body"/>
+                        </f:facet>
+                    </p:menubar>
+                </h:form>
+                <h:form id="form">
+                    <p:dataTable var="email" value="#{lazyView.lazyModel}" paginator="true" rows="10" paginatorPosition="bottom"
+                                 paginatorTemplate="{RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {CurrentPageReport} {NextPageLink} {LastPageLink}"
+                                 rowsPerPageTemplate="10,25,100" selectionMode="single" selection="#{lazyView.selectedEmail}" id="emailTable" lazy="true"
+                                 scrollable="true" scrollHeight="200">
+                        <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
+                        <p:column style="width: 20px">
+                            <p:triStateCheckbox value="#{email.annotation}"> 
+                                <p:ajax event="change" update="growl" listener="#{lazyView.updateAnnotations(email)}"/>  
+                            </p:triStateCheckbox>
+                        </p:column>
+                        <p:column headerText="Score" sortBy="#{email.score}" width="10%">
+                            <h:outputText value="#{email.score}"/>
+                        </p:column>
+                        <p:column headerText="From" sortBy="#{email.from}" width="20%">
+                            <h:outputText value="#{email.from.left}" title="#{email.from.right}"/>
+                        </p:column>
+                        <p:column headerText="Subject" sortBy="#{email.subject}" width="50%">
+                            <h:outputText value="#{email.subject}"/>
+                        </p:column>
+                        <p:column headerText="Date" sortBy="#{email.date}" width="20%">
+                            <h:outputText value="#{email.date}"/>
+                        </p:column>
+                    </p:dataTable>
+                </h:form>
+            </p:layoutUnit>
+            <p:layoutUnit position="center">
+                <div style="white-space: pre-wrap">
+                    <h:outputText value="#{lazyView.selectedEmail.body}" id="body"/>
+                </div>
+            </p:layoutUnit>
+        </p:layout>
+    </h:body>
+</html>
