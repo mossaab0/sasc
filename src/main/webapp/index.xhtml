@@ -7,6 +7,9 @@
       xmlns:c="http://java.sun.com/jsp/jstl/core">
     <h:head>
         <title>Search in Secrets</title>
+        <script src="resources/jquery.easing.js" type="text/javascript"></script>
+        <script src="resources/jqueryFileTree.js" type="text/javascript"></script>
+        <link href="resources/jqueryFileTree.css" rel="stylesheet" type="text/css" media="screen" />
         <style>
             .ui-widget {font-size: 1em !important}
             .ui-menu .ui-menu-parent .ui-menu-child {width: 25em !important}
@@ -56,16 +59,44 @@
                 PF('statusDialog').hide();
                 ajaxInProgress = null;
             }
+            function showBrowser() {
+                $('#browser').
+                        fileTree({root: '/', script: 'jqueryFileTree.jsp'},
+                                function (file) {
+                                    $('#selected').val(file);
+                                    PF('selectedPanel').show();
+                                });
+                PF('browserDialog').show();
+            }
         </script>
         <p:dialog modal="true" widgetVar="statusDialog" showHeader="false" draggable="false" closable="false" resizable="false">
-            <p:graphicImage url="ajax-loader.gif" />
+            <p:graphicImage url="resources/ajax-loader.gif" />
         </p:dialog>
-        <p:layout fullPage = "true">
-            <p:layoutUnit position="north" size="310" style="z-index: 2000">
+        <p:dialog header="Select .mbox file" widgetVar="browserDialog" modal="true" height="400px" width="600px">
+            <div id="browser"/>
+            <p:separator/>
+            <p:panel widgetVar="selectedPanel" visible="false">
+                <h:form prependId="false">
+                    <p:inputText id="selected" value="#{applicationBean.mboxPath}" placeholder="Mbox path"/>
+                    <p:commandButton value="Index" actionListener="#{applicationBean.indexMbox}" onclick="PF('browserDialog').hide(); PF('progressPanel').show(); PF('pbAjax').start();" global="false"/>
+                    <p:commandButton value="Cancel" type="button" onclick="PF('browserDialog').hide()"/>
+                </h:form>
+            </p:panel>
+        </p:dialog>
+        <p:dialog showHeader="false" widgetVar="progressPanel" modal="true" height="25px" width="600px" resizable="false" draggable="false">
+            <p:progressBar widgetVar="pbAjax" ajax="true" value="#{applicationBean.indexingProgress}" labelTemplate="{value}%" styleClass="animated" global="false">
+                <p:ajax event="complete" update="growl" oncomplete="PF('progressPanel').hide()"/>
+            </p:progressBar>
+        </p:dialog>
+        <p:layout fullPage="true">
+            <p:layoutUnit position="north" size="310">
                 <h:form>  
                     <p:growl id="messages"/>
                     <p:menubar id="menubar">
-                        <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="form body"/>
+                        <p:submenu label="Corpora">
+                            <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled}"/>
+                            <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="form body"/>
+                        </p:submenu>
                         <p:submenu label="ePadd Word List">
                             <c:forEach var="lexicon" items="#{applicationBean.lexicons}">
                                 <p:submenu label="#{lexicon.key}">
@@ -83,11 +114,11 @@
                                 <p:fileDownload value="#{applicationBean.file}" />
                             </p:menuitem>
                             <p:menuitem disabled="true">
-                                <p:fileUpload fileUploadListener="#{applicationBean.handleFileUpload}" mode="advanced" auto="true" label="Import" update="messages" disabled="true"/>
+                                <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" mode="advanced" auto="true" label="Import" update="messages" disabled="true"/>
                             </p:menuitem>
                         </p:submenu>
                         <f:facet name="options">
-                            <p:fileUpload fileUploadListener="#{applicationBean.handleFileUpload}" auto="true" label="Import Model" update="messages menubar"/>
+                            <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" auto="true" label="Import Model" update="messages menubar"/>
                             <p:inputText value="#{lazyView.query}" placeholder="Search"/>
                             <p:commandButton icon="ui-icon-search" actionListener="#{lazyView.submit}" update="form body"/>
                         </f:facet>

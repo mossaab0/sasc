@@ -29,9 +29,11 @@ import java.io.UncheckedIOException;
 import static java.lang.Math.sqrt;
 import java.util.ArrayList;
 import static java.util.Comparator.comparing;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -46,9 +48,15 @@ import static javax.faces.application.FacesMessage.SEVERITY_INFO;
 import javax.faces.bean.ApplicationScoped;
 import javax.faces.bean.ManagedBean;
 import javax.faces.context.FacesContext;
+import javax.mail.Session;
+import net.fortuna.mstor.MStorMessage;
+import net.fortuna.mstor.data.MboxFile;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -89,6 +97,9 @@ public class ApplicationBean {
     private Map<Pair<String, String>, Integer> vocab = new HashMap<>();
     private svm_model model = null;
     private CustomKernel kernel = new LinearKernel();
+    private String mboxPath = "";
+    private boolean isIndexing;
+    private int indexingProgress;
 
     public ApplicationBean() {
         try {
@@ -238,7 +249,7 @@ public class ApplicationBean {
         return !annotations.isEmpty() && !isTraining;
     }
 
-    public void handleFileUpload(FileUploadEvent event) {
+    public void uploadModel(FileUploadEvent event) {
         predictions = null;
         FacesMessage msg = new FacesMessage(SEVERITY_ERROR, "Failed to process model", "");
         Map<Pair<String, String>, Integer> vocabTmp = new HashMap<>();
@@ -267,7 +278,8 @@ public class ApplicationBean {
                 msg = new FacesMessage(SEVERITY_INFO, "Model uploaded successfully", "");
             }
         } catch (IOException | ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            msg = new FacesMessage(SEVERITY_ERROR, e.getMessage(), "");
+            e.printStackTrace();
         }
         FacesContext.getCurrentInstance().addMessage(null, msg);
     }
@@ -290,5 +302,66 @@ public class ApplicationBean {
             e.printStackTrace();
         }
         writeZip(zip, os.toByteArray(), name);
+    }
+
+    /**
+     * @return the mboxPath
+     */
+    public String getMboxPath() {
+        return mboxPath;
+    }
+
+    public void indexMbox() {
+        isIndexing = true;
+        indexingProgress = 0;
+        Properties props = new Properties();
+        props.setProperty("mail.mime.address.strict", "false");
+        String indexPath = "/fs/clip-secrets/tmpindex";
+
+        Session session = Session.getInstance(props, null);
+
+        FacesMessage msg;
+        System.out.println(new Date() + " - Started indexing.");
+        try {
+            MboxFile file = new MboxFile(new File(mboxPath));
+            int count = file.getMessageCount();
+            try (IndexWriter iw = new IndexWriter(FSDirectory.open(new File(indexPath).toPath()), new IndexWriterConfig(new EnglishAnalyzer()))) {
+                for (int i = 0; i < count; i++) {
+                    iw.addDocument(new MessageConverter(new MStorMessage(session, file.getMessageAsStream(i))).toDocument());
+                    if (i > 0 && i % 1000 == 0) {
+                        System.out.println(new Date() + " - Messages indexed: " + (i + 1));
+                        iw.commit();
+                    }
+                    indexingProgress = (100 * i) / count;
+                }
+                iw.commit();
+                System.out.println(new Date() + " - Started merging.");
+                iw.forceMerge(1);
+                iw.commit();
+                indexingProgress = 100;
+                msg = new FacesMessage(SEVERITY_INFO, "Mbox file indexed successfully", "");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            msg = new FacesMessage(SEVERITY_ERROR, e.getMessage(), "");
+        }
+        System.out.println(new Date() + " - Finished indexing.");
+        FacesContext.getCurrentInstance().addMessage(null, msg);
+        isIndexing = false;
+    }
+
+    public boolean isIndexingEnabled() {
+        return !isIndexing;
+    }
+
+    /**
+     * @param mboxPath the mboxPath to set
+     */
+    public void setMboxPath(String mboxPath) {
+        this.mboxPath = mboxPath;
+    }
+
+    public int getIndexingProgress() {
+        return indexingProgress;
     }
 }
