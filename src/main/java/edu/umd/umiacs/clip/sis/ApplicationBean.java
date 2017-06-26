@@ -13,6 +13,7 @@ import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_TEXT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.MESSAGE_ID;
 import static edu.umd.umiacs.clip.sis.MessageConverter.SUBJECT;
+import edu.umd.umiacs.clip.tools.classifier.ConfusionMatrix;
 import static edu.umd.umiacs.clip.tools.io.AllFiles.REMOVE_OLD_FILE;
 import static edu.umd.umiacs.clip.tools.io.AllFiles.lines;
 import static edu.umd.umiacs.clip.tools.io.AllFiles.readAllLines;
@@ -26,6 +27,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.UncheckedIOException;
+import static java.lang.Math.min;
+import static java.lang.Math.round;
 import static java.lang.Math.sqrt;
 import java.util.ArrayList;
 import static java.util.Comparator.comparing;
@@ -33,6 +36,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
@@ -52,18 +56,16 @@ import javax.mail.Session;
 import net.fortuna.mstor.MStorMessage;
 import net.fortuna.mstor.data.MboxFile;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.cxf.helpers.FileUtils;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.DefaultStreamedContent;
@@ -73,6 +75,31 @@ import org.primefaces.model.StreamedContent;
 @ApplicationScoped
 public class ApplicationBean {
 
+    public String getThemeReplacement() {
+        return null;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public final void setThemeReplacement(String theme) {
+        FacesMessage msg;
+        if (new File(annotationsPath + theme + ".txt").exists()) {
+            msg = new FacesMessage(SEVERITY_ERROR, "There is already a theme with the name \"" + theme + "\".", "");
+        } else {
+            this.theme = theme;
+            annotations = new HashMap<>();
+            model = null;
+            kernel = new LinearKernel();
+            predictions = null;
+            vocab.clear();
+            KernelManager.setCustomKernel(kernel);
+            msg = new FacesMessage(SEVERITY_INFO, "You have successfully created the new theme \"" + theme + "\".", "");
+        }
+        FacesContext.getCurrentInstance().addMessage(null, msg);
+    }
+
     /**
      * @return the annotations
      */
@@ -80,13 +107,14 @@ public class ApplicationBean {
         return annotations;
     }
 
-    private final transient IndexSearcher is;
-    private final Map<String, Boolean> annotations;
+    private transient IndexSearcher is;
+    private Map<String, Boolean> annotations;
     private final List<Pair<String, List<Pair<String, String>>>> lexicons = new ArrayList<>();
-    //private String rootPath = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home") + "/SIS") + "/";
-    private String rootPath = "/fs/clip-secrets/mossaab_maghress.com/";
+    private String rootPath = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home") + "/SIS") + "/";
+    //private String rootPath = "/fs/clip-secrets/enron/";
     private String indexPath = rootPath + "index";
-    private String annotationsPath = rootPath + "annotations.txt";
+    private String annotationsPath = rootPath + "annotations/";
+    private String theme;
     private static final String VOCAB_NAME = "vocab.txt";
     private static final String MODEL_NAME = "model.svm";
     private static final String KERNEL_NAME = "kernel.svm";
@@ -95,15 +123,21 @@ public class ApplicationBean {
     private float[] predictions;
     private boolean isTraining;
     private Map<Pair<String, String>, Integer> vocab = new HashMap<>();
-    private svm_model model = null;
-    private CustomKernel kernel = new LinearKernel();
+    private svm_model model;
+    private CustomKernel kernel;
     private String mboxPath = "";
     private boolean isIndexing;
-    private int indexingProgress;
+    private int progress;
 
     public ApplicationBean() {
         try {
-            is = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(indexPath).toPath())));
+            File indexFile = new File(indexPath);
+            if (indexFile.exists()) {
+                Directory directory = FSDirectory.open(indexFile.toPath());
+                if (DirectoryReader.indexExists(directory)) {
+                    is = new IndexSearcher(DirectoryReader.open(directory));
+                }
+            }
             ZipInputStream zis = new ZipInputStream(getClass().getClassLoader().getResourceAsStream(LEXICON_PATH));
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -118,12 +152,22 @@ public class ApplicationBean {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        annotations = new File(annotationsPath).exists()
-                ? readAllLines(annotationsPath).stream().
-                        map(line -> line.split("\t")).
-                        collect(toMap(pair -> pair[1], pair -> pair[0].equals("1")))
-                : new HashMap<>();
-        KernelManager.setCustomKernel(kernel);
+        new File(annotationsPath).mkdir();
+        Optional<String> last = Stream.of(new File(annotationsPath).listFiles()).
+                max(comparing(File::lastModified)).map(File::getName).
+                map(name -> name.substring(0, name.length() - 4));
+        if (last.isPresent()) {
+            loadAnnotations(last.get());
+        } else {
+            setThemeReplacement("Default");
+        }
+    }
+
+    public List<String> getThemes() {
+        return Stream.of(new File(annotationsPath).listFiles()).
+                map(File::getName).
+                map(name -> name.substring(0, name.length() - 4)).
+                sorted().collect(toList());
     }
 
     /**
@@ -137,7 +181,7 @@ public class ApplicationBean {
         List<String> lines = annotations.entrySet().stream().
                 map(entry -> (entry.getValue() ? "1" : "0") + "\t" + entry.getKey()).
                 collect(toList());
-        write(annotationsPath, lines, REMOVE_OLD_FILE);
+        write(annotationsPath + theme + ".txt", lines, REMOVE_OLD_FILE);
     }
 
     /**
@@ -147,28 +191,36 @@ public class ApplicationBean {
         return lexicons;
     }
 
+    private static SparseVector getFeatures(Document doc, Map<Pair<String, String>, Integer> vocab, boolean isTraining) {
+        SparseVector vector = new SparseVector();
+        Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT).
+                forEach(field -> {
+                    String content = doc.get(field);
+                    if (content != null && !content.isEmpty()) {
+                        content = LuceneUtils.enStem(content);
+                        if (!content.isEmpty()) {
+                            LangUtils.toFreqMap(content).entrySet().forEach(entry -> {
+                                Pair<String, String> key = Pair.of(field, entry.getKey());
+                                Integer index = vocab.get(key);
+                                if (index == null && isTraining) {
+                                    index = vocab.size();
+                                    vocab.put(key, index);
+                                }
+                                if (index != null) {
+                                    vector.add(index, sqrt(entry.getValue()));
+                                }
+                            });
+                        }
+                    }
+                });
+        return vector;
+    }
+
     public void predict() {
         predictions = new float[is.getIndexReader().numDocs()];
         try {
             for (int i = 0; i < predictions.length; i++) {
-                Document doc = is.doc(i);
-                SparseVector vector = new SparseVector();
-                Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT).
-                        forEach(field -> {
-                            String content = doc.get(field);
-                            if (content != null && !content.isEmpty()) {
-                                content = LuceneUtils.enStem(content);
-                                if (!content.isEmpty()) {
-                                    LangUtils.toFreqMap(content).entrySet().forEach(entry -> {
-                                        int index = vocab.getOrDefault(Pair.of(field, entry.getKey()), -1);
-                                        if (index > 0) {
-                                            vector.add(index, sqrt(entry.getValue()));
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                predictions[i] = (float) svm_predict(model, new svm_node(vector), kernel);
+                predictions[i] = (float) svm_predict(model, new svm_node(getFeatures(is.doc(i), vocab, false)), kernel);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -190,42 +242,71 @@ public class ApplicationBean {
 
     public void train() {
         isTraining = true;
-        predictions = null;
-        BooleanQuery.Builder bQuery = new BooleanQuery.Builder();
-        annotations.keySet().stream().
-                forEach(id -> bQuery.add(new TermQuery(new Term(MESSAGE_ID, id)),
-                BooleanClause.Occur.SHOULD));
-        vocab.clear();
         List<Instance> instances = new ArrayList<>();
-        try {
-            TopDocs hits = is.search(bQuery.build(), 1000);
-            for (ScoreDoc scoreDoc : hits.scoreDocs) {
-                Document doc = is.doc(scoreDoc.doc);
-                SparseVector vector = new SparseVector();
-                Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT).
-                        forEach(field -> {
-                            String content = doc.get(field);
-                            if (content != null && !content.isEmpty()) {
-                                content = LuceneUtils.enStem(content);
-                                if (!content.isEmpty()) {
-                                    Map<String, Integer> freq = LangUtils.toFreqMap(content);
-                                    freq.entrySet().forEach(entry -> {
-                                        Pair<String, String> key = Pair.of(field, entry.getKey());
-                                        int index = vocab.getOrDefault(key, vocab.size() + 1);
-                                        vocab.putIfAbsent(key, index);
-                                        vector.add(index, sqrt(entry.getValue()));
-                                    });
-                                }
-                            }
-                        });
-                instances.add(new Instance(annotations.get(doc.get(MESSAGE_ID)) ? 1 : -1, vector));
+        for (String id : annotations.keySet()) {
+            TermQuery query = new TermQuery(new Term(MESSAGE_ID, id));
+            try {
+                Document doc = is.doc(is.search(query, 1).scoreDocs[0].doc);
+                instances.add(new Instance(annotations.get(doc.get(MESSAGE_ID)) ? 1 : -1, getFeatures(doc, vocab, true)));
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
 
         model = SVMTrainer.train(instances, new svm_parameter());
         isTraining = false;
+    }
+
+    public String getCrossValidation() {
+        isTraining = true;
+        progress = 0;
+        Map<Pair<String, String>, Integer> vocabCV = new HashMap<>();
+        List<Instance> instances = new ArrayList<>();
+        for (String id : annotations.keySet()) {
+            TermQuery query = new TermQuery(new Term(MESSAGE_ID, id));
+            try {
+                Document doc = is.doc(is.search(query, 1).scoreDocs[0].doc);
+                instances.add(new Instance(annotations.get(doc.get(MESSAGE_ID)) ? 1 : -1, getFeatures(doc, vocabCV, true)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        svm_parameter params = new svm_parameter();
+        List<Boolean> gold = new ArrayList<>();
+        List<Boolean> preds = new ArrayList<>();
+        int folds = min(10, instances.size());
+        int i = 0;
+        for (Pair<List<Instance>, List<Instance>> pair : split(instances, folds)) {
+            svm_model modelVocab = SVMTrainer.train(pair.getLeft(), params);
+            pair.getRight().stream().
+                    map(instance -> instance.getLabel() > 0).forEach(gold::add);
+            pair.getRight().stream().
+                    map(instance -> svm_predict(modelVocab, new svm_node(instance.getData()), kernel) > 0).
+                    forEach(preds::add);
+            progress = (int) (100 * ++i / (folds));
+        }
+        ConfusionMatrix cm = new ConfusionMatrix(gold, preds);
+        isTraining = false;
+        return "Recall = " + format(cm.getRecall())
+                + ", Precision = " + format(cm.getPrecision())
+                + ", F1 = " + format(cm.getF1());
+    }
+
+    private static float format(float f) {
+        return round(100 * f) / 100f;
+    }
+
+    private static List<Pair<List<Instance>, List<Instance>>> split(List<Instance> list, int folds) {
+        List<Pair<List<Instance>, List<Instance>>> split = new ArrayList<>();
+        for (int i = 0; i < folds; i++) {
+            int testStart = Math.round(list.size() * i / (float) folds);
+            int testEnd = Math.round(list.size() * (i + 1) / (float) folds);
+            List<Instance> training = new ArrayList<>(list.subList(0, testStart));
+            training.addAll(list.subList(testEnd, list.size()));
+            split.add(Pair.of(training, list.subList(testStart, testEnd)));
+        }
+        return split;
     }
 
     public StreamedContent getFile() {
@@ -313,18 +394,19 @@ public class ApplicationBean {
 
     public void indexMbox() {
         isIndexing = true;
-        indexingProgress = 0;
+        progress = 0;
         Properties props = new Properties();
         props.setProperty("mail.mime.address.strict", "false");
-        String indexPath = "/fs/clip-secrets/tmpindex";
-
         Session session = Session.getInstance(props, null);
-
         FacesMessage msg;
         System.out.println(new Date() + " - Started indexing.");
         try {
             MboxFile file = new MboxFile(new File(mboxPath));
             int count = file.getMessageCount();
+            if (is != null) {
+                is.getIndexReader().close();
+            }
+            FileUtils.removeDir(new File(indexPath));
             try (IndexWriter iw = new IndexWriter(FSDirectory.open(new File(indexPath).toPath()), new IndexWriterConfig(new EnglishAnalyzer()))) {
                 for (int i = 0; i < count; i++) {
                     iw.addDocument(new MessageConverter(new MStorMessage(session, file.getMessageAsStream(i))).toDocument());
@@ -332,13 +414,16 @@ public class ApplicationBean {
                         System.out.println(new Date() + " - Messages indexed: " + (i + 1));
                         iw.commit();
                     }
-                    indexingProgress = (100 * i) / count;
+                    progress = (100 * i) / count;
                 }
                 iw.commit();
                 System.out.println(new Date() + " - Started merging.");
                 iw.forceMerge(1);
                 iw.commit();
-                indexingProgress = 100;
+
+                is = new IndexSearcher(DirectoryReader.open(FSDirectory.open(new File(indexPath).toPath())));
+
+                progress = 100;
                 msg = new FacesMessage(SEVERITY_INFO, "Mbox file indexed successfully", "");
             }
         } catch (IOException e) {
@@ -361,7 +446,30 @@ public class ApplicationBean {
         this.mboxPath = mboxPath;
     }
 
-    public int getIndexingProgress() {
-        return indexingProgress;
+    public int getProgress() {
+        return progress;
+    }
+
+    public boolean isIndexExists() {
+        return is != null;
+    }
+
+    public final void loadAnnotations(String theme) {
+        this.theme = theme;
+        loadAnnotations();
+    }
+
+    public void newAnnotations() {
+    }
+
+    public void loadAnnotations() {
+        annotations = readAllLines(annotationsPath + theme + ".txt").stream().
+                map(line -> line.split("\t")).
+                collect(toMap(pair -> pair[1], pair -> pair[0].equals("1")));
+        model = null;
+        kernel = new LinearKernel();
+        predictions = null;
+        vocab.clear();
+        KernelManager.setCustomKernel(kernel);
     }
 }

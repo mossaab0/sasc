@@ -86,20 +86,24 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
                 : new SortField(capitalizeFirstLetter(sortField),
                         sortField.equals("date") ? LONG : STRING,
                         sortOrder == DESCENDING);
-        try {
-            TopDocs hits = is.search(query, first + pageSize, new Sort(sort), true, false);
-            for (int i = first; i < hits.scoreDocs.length && i < first + pageSize; i++) {
-                Email email = new Email(annotations, is.doc(hits.scoreDocs[i].doc));
-                email.setScore(hits.scoreDocs[i].score);
-                data.add(email);
-                map.put(email.getId(), email);
-                if (i == first) {
-                    firstEmail = email;
+        if (is != null) {
+            try {
+                TopDocs hits = is.search(query, first + pageSize, new Sort(sort), true, false);
+                for (int i = first; i < hits.scoreDocs.length && i < first + pageSize; i++) {
+                    Email email = new Email(annotations, is.doc(hits.scoreDocs[i].doc));
+                    email.setScore(hits.scoreDocs[i].score);
+                    data.add(email);
+                    map.put(email.getId(), email);
+                    if (i == first) {
+                        firstEmail = email;
+                    }
                 }
+                setRowCount(hits.totalHits);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            setRowCount(hits.totalHits);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } else {
+            setRowCount(0);
         }
     }
 
@@ -174,9 +178,11 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
             process(query, first, pageSize, sortField, sortOrder);
         } else {
             BooleanQuery.Builder bQuery = new BooleanQuery.Builder();
-            annotations.keySet().stream().
-                    forEach(id -> bQuery.add(new TermQuery(new Term(MESSAGE_ID, id)),
-                    BooleanClause.Occur.SHOULD));
+            if (annotations != null) {
+                annotations.keySet().stream().
+                        forEach(id -> bQuery.add(new TermQuery(new Term(MESSAGE_ID, id)),
+                        BooleanClause.Occur.SHOULD));
+            }
             process(bQuery.build(), first, pageSize, sortField, sortOrder);
         }
         return data;

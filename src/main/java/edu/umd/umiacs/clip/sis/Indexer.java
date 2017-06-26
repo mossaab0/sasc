@@ -20,8 +20,8 @@ public class Indexer {
     public static void main(String[] args) throws Exception {
         Properties props = new Properties();
         props.setProperty("mail.mime.address.strict", "false");
-        String mboxPath = "/fs/clip-secrets/mossaab_maghress.com/archive.mbox";
-        String indexPath = "/fs/clip-secrets/mossaab_maghress.com/index";
+        String mboxPath = "/fs/clip-secrets/enron/enron.mbox";
+        String indexPath = "/fs/clip-secrets/enron/index";
 
         Session session = Session.getInstance(props, null);
 

@@ -12,7 +12,8 @@
         <link href="resources/jqueryFileTree.css" rel="stylesheet" type="text/css" media="screen" />
         <style>
             .ui-widget {font-size: 1em !important}
-            .ui-menu .ui-menu-parent .ui-menu-child {width: 25em !important}
+            .ui-menu .ui-menu-parent .ui-menu-child {white-space:nowrap; width: auto}
+            .ui-menubar .ui-menu-child .ui-menuitem-link {width: 100%}
             .ui-layout-north {
                 z-index:20 !important;
                 overflow:visible !important;
@@ -73,62 +74,87 @@
             <p:graphicImage url="resources/ajax-loader.gif" />
         </p:dialog>
         <p:dialog header="Select .mbox file" widgetVar="browserDialog" modal="true" height="400px" width="600px">
-            <div id="browser"/>
-            <p:separator/>
             <p:panel widgetVar="selectedPanel" visible="false">
                 <h:form prependId="false">
                     <p:inputText id="selected" value="#{applicationBean.mboxPath}" placeholder="Mbox path"/>
-                    <p:commandButton value="Index" actionListener="#{applicationBean.indexMbox}" onclick="PF('browserDialog').hide(); PF('progressPanel').show(); PF('pbAjax').start();" global="false"/>
+                    <p:commandButton value="Index" onclick="PF('browserDialog').hide(); PF('progressPanel').show(); PF('pbAjax').start();" global="false" update="center">
+                        <f:actionListener binding="#{applicationBean.indexMbox()}"/>
+                        <f:actionListener binding="#{lazyView.submit()}"/>
+                    </p:commandButton>
                     <p:commandButton value="Cancel" type="button" onclick="PF('browserDialog').hide()"/>
                 </h:form>
             </p:panel>
+            <p:separator/>
+            <div id="browser"/>
         </p:dialog>
-        <p:dialog showHeader="false" widgetVar="progressPanel" modal="true" height="25px" width="600px" resizable="false" draggable="false">
-            <p:progressBar widgetVar="pbAjax" ajax="true" value="#{applicationBean.indexingProgress}" labelTemplate="{value}%" styleClass="animated" global="false">
-                <p:ajax event="complete" update="growl" oncomplete="PF('progressPanel').hide()"/>
+        <p:dialog showHeader="false" widgetVar="progressPanel" modal="true" height="24px" width="600px" resizable="false" draggable="false">
+            <p:progressBar widgetVar="pbAjax" ajax="true" value="#{applicationBean.progress}" labelTemplate="{value}%" styleClass="animated" global="false">
+                <p:ajax event="complete" update="growl menubar tableform tableform" oncomplete="PF('progressPanel').hide()"/>
             </p:progressBar>
+        </p:dialog>
+        <p:dialog header="Cross Validation Effectiveness" widgetVar="cvDialog" dynamic="true" resizable="false">
+            <h:outputText value="#{applicationBean.crossValidation}"/>
+        </p:dialog>
+        <p:dialog id="themeDialog" header="New Theme" widgetVar="themeDialog" dynamic="true" resizable="false">
+            <h:form prependId="false">
+                <p:inputText id="themeName" widgetVar="themeName" value="#{applicationBean.themeReplacement}" placeholder="Theme Name" validatorMessage="Please enter only alphanumerical characters or spaces">
+                    <f:validateRegex pattern="^[0-9a-zA-Z]+[0-9a-zA-Z ]*$"/>
+                </p:inputText>
+                <p:commandButton value="Create" update="tableform body growl menubar" oncomplete="$('#themeName').val(''); PF('themeDialog').hide()">
+                    <f:actionListener binding="#{applicationBean.newAnnotations()}"/>
+                    <f:actionListener binding="#{lazyView.submit()}"/>
+                </p:commandButton>
+            </h:form>
         </p:dialog>
         <p:layout fullPage="true">
             <p:layoutUnit position="north" size="310">
-                <h:form>  
+                <h:form prependId="false">  
                     <p:growl id="messages"/>
                     <p:menubar id="menubar">
                         <p:submenu label="Corpora">
                             <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled}"/>
-                            <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="form body"/>
+                            <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
                         </p:submenu>
-                        <p:submenu label="ePadd Word List">
+                        <p:submenu label="ePadd Word List" rendered="#{applicationBean.indexExists}">
                             <c:forEach var="lexicon" items="#{applicationBean.lexicons}">
                                 <p:submenu label="#{lexicon.key}">
                                     <c:forEach var="list" items="#{lexicon.value}">
-                                        <p:menuitem value="#{list.key}" title="#{list.value}" actionListener="#{lazyView.filter(list.value)}" update="form body"/>
+                                        <p:menuitem value="#{list.key}" title="#{list.value}" actionListener="#{lazyView.filter(list.value)}" update="tableform body"/>
                                     </c:forEach>
                                 </p:submenu>
                             </c:forEach>
                         </p:submenu>
-                        <p:submenu label="Model">
+                        <p:submenu label="Model" rendered="#{applicationBean.indexExists}">
+                            <p:menuitem value="New Theme" onclick="PF('themeDialog').show()"/>
+                            <p:submenu label="Load Theme" rendered="#{!applicationBean.themes.isEmpty()}">
+                                <c:forEach var="theme" items="#{applicationBean.themes}">
+                                    <p:menuitem value="#{theme}" update="tableform body menubar">
+                                        <f:actionListener binding="#{applicationBean.loadAnnotations(theme)}"/>
+                                        <f:actionListener binding="#{lazyView.submit()}"/>
+                                    </p:menuitem>
+                                </c:forEach>
+                            </p:submenu>
                             <p:menuitem value="Train" actionListener="#{applicationBean.train}" disabled="#{!applicationBean.trainingEnabled}" update="menubar"/>
-                            <p:menuitem value="Predict" actionListener="#{lazyView.predict}" update="form body" disabled="#{!applicationBean.predictionEnabled}"/>
-                            <p:menuitem value="Active Learning" actionListener="#{lazyView.activeLearning}" update="form body"/>
+                            <p:menuitem value="Predict" actionListener="#{lazyView.predict}" update="tableform body" disabled="#{!applicationBean.predictionEnabled}"/>
+                            <p:menuitem value="Active Learning" actionListener="#{lazyView.activeLearning}" update="tableform body"/>
                             <p:menuitem value="Export" ajax="false" disabled="#{!applicationBean.predictionEnabled}">
                                 <p:fileDownload value="#{applicationBean.file}" />
                             </p:menuitem>
-                            <p:menuitem disabled="true">
-                                <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" mode="advanced" auto="true" label="Import" update="messages" disabled="true"/>
-                            </p:menuitem>
+                            <p:menuitem value="Cross Validation" onclick="PF('cvDialog').show()"/>
                         </p:submenu>
                         <f:facet name="options">
-                            <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" auto="true" label="Import Model" update="messages menubar"/>
-                            <p:inputText value="#{lazyView.query}" placeholder="Search"/>
-                            <p:commandButton icon="ui-icon-search" actionListener="#{lazyView.submit}" update="form body"/>
+                            <h:outputText value="Theme: #{applicationBean.theme}" style="float: left; padding: .3em 1em" rendered="#{applicationBean.indexExists}"/>
+                            <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" auto="true" label="Import Model" update="messages menubar" rendered="#{applicationBean.indexExists}"/>
+                            <p:inputText value="#{lazyView.query}" placeholder="Search" rendered="#{applicationBean.indexExists}"/>
+                            <p:commandButton icon="ui-icon-search" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
                         </f:facet>
                     </p:menubar>
                 </h:form>
-                <h:form id="form">
+                <h:form id="tableform">
                     <p:dataTable var="email" value="#{lazyView.lazyModel}" paginator="true" rows="10" paginatorPosition="bottom"
                                  paginatorTemplate="{RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {CurrentPageReport} {NextPageLink} {LastPageLink}"
                                  rowsPerPageTemplate="10,25,100" selectionMode="single" selection="#{lazyView.selectedEmail}" id="emailTable" lazy="true"
-                                 scrollable="true" scrollHeight="200">
+                                 scrollable="true" scrollHeight="200" rendered="#{applicationBean.indexExists}">
                         <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
                         <p:column style="width: 20px">
                             <p:triStateCheckbox value="#{email.annotation}"> 
@@ -150,9 +176,9 @@
                     </p:dataTable>
                 </h:form>
             </p:layoutUnit>
-            <p:layoutUnit position="center">
+            <p:layoutUnit position="center" id="center">
                 <div style="white-space: pre-wrap">
-                    <h:outputText value="#{lazyView.selectedEmail.body}" id="body"/>
+                    <h:outputText value="#{lazyView.selectedEmail.body}" id="body" rendered="#{applicationBean.indexExists}"/>
                 </div>
             </p:layoutUnit>
         </p:layout>

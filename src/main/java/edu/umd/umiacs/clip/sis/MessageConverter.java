@@ -2,6 +2,7 @@ package edu.umd.umiacs.clip.sis;
 
 import java.io.IOException;
 import static java.util.Arrays.asList;
+import java.util.Date;
 import java.util.stream.Stream;
 import javax.mail.Address;
 import javax.mail.Message;
@@ -89,6 +90,9 @@ public class MessageConverter {
             throws MessagingException, IOException, TikaException, SAXException {
         if (part instanceof Message) {
             Message message = (Message) part;
+            if (message.getSubject() == null) {
+                return;
+            }
             document.add(new Field(SUBJECT, message.getSubject(), POSITIONS_STORED));
             document.add(new SortedDocValuesField(SUBJECT, new BytesRef(message.getSubject())));
             String[] threadid = message.getHeader(THREAD_ID);
