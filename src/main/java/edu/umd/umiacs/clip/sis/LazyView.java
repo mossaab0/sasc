@@ -11,6 +11,9 @@ import javax.faces.bean.ManagedBean;
 import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.ViewScoped;
 import javax.faces.context.FacesContext;
+import javax.faces.event.AjaxBehaviorEvent;
+import org.primefaces.component.selectbooleanbutton.SelectBooleanButton;
+import org.primefaces.component.selectonebutton.SelectOneButton;
 import org.primefaces.event.SelectEvent;
 
 @ManagedBean
@@ -64,6 +67,11 @@ public class LazyView implements Serializable {
         selectedEmail = lazyModel.getFirstEmail();
     }
 
+    public void searchEmail(String left, String right) {
+        lazyModel = new LazyEmailDataModel(applicationBean.getIs(), applicationBean.getAnnotations(), "\"" + left.replace("\"", " ") + "\" \"" + right.replace("\"", " ") + "\"");
+        selectedEmail = lazyModel.getFirstEmail();
+    }
+
     public void predict() {
         lazyModel = new LazyEmailDataModel(applicationBean.getIs(), applicationBean.getAnnotations(), applicationBean.getPredictions(), false);
         selectedEmail = lazyModel.getFirstEmail();
@@ -89,11 +97,19 @@ public class LazyView implements Serializable {
             message = "Annotation removed.";
         } else {
             applicationBean.getAnnotations().put(email.getId(), email.getAnnotation() == 1);
-            message = "Email " + (applicationBean.getAnnotations().get(email.getId()) ? "protected" : "unprotected") + ".";
+            message = "Email " + (applicationBean.getAnnotations().get(email.getId()) ? "protected" : "released") + ".";
         }
         applicationBean.saveAnnotations();
         FacesMessage msg = new FacesMessage(message);
         FacesContext.getCurrentInstance().addMessage(null, msg);
+    }
+
+    public void subjectSelectionChanged(AjaxBehaviorEvent event) {
+        System.out.println(event.getClass().getSimpleName());
+        System.out.println(event.getSource());
+        SelectOneButton source = (SelectOneButton) event.getSource();
+        System.out.println(source.getValue());
+        System.out.println(source.getLocalValue());
     }
 
     /**

@@ -110,8 +110,8 @@ public class ApplicationBean {
     private transient IndexSearcher is;
     private Map<String, Boolean> annotations;
     private final List<Pair<String, List<Pair<String, String>>>> lexicons = new ArrayList<>();
-    private String rootPath = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home") + "/SIS") + "/";
-    //private String rootPath = "/fs/clip-secrets/enron/";
+    //private String rootPath = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home") + "/SIS") + "/";
+    private String rootPath = "/fs/clip-scratch/mossaab/sasc/enron/";
     private String indexPath = rootPath + "index";
     private String annotationsPath = rootPath + "annotations/";
     private String theme;
@@ -323,7 +323,7 @@ public class ApplicationBean {
             e.printStackTrace();
         }
 
-        return new DefaultStreamedContent(new ByteArrayInputStream(tarOS.toByteArray()), "application/octet-stream", "model.zip");
+        return new DefaultStreamedContent(new ByteArrayInputStream(tarOS.toByteArray()), "application/octet-stream", theme + ".zip");
     }
 
     public boolean isTrainingEnabled() {

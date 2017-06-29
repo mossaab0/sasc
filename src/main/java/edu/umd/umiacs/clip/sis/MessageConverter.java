@@ -1,8 +1,10 @@
 package edu.umd.umiacs.clip.sis;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import static java.util.Arrays.asList;
-import java.util.Date;
+import java.util.List;
+import static java.util.stream.Collectors.joining;
 import java.util.stream.Stream;
 import javax.mail.Address;
 import javax.mail.Message;
@@ -12,6 +14,7 @@ import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
@@ -102,15 +105,20 @@ public class MessageConverter {
             String[] labels = message.getHeader(LABELS);
             if (labels != null && labels.length > 0) {
                 Stream.of(labels[0].split(",")).forEach(label -> document.add(new Field(LABELS, label, POSITIONS_STORED)));
+            } else {
+                labels = message.getHeader("X-Folder");
+                if (labels != null && labels.length > 0) {
+                    Stream.of(labels[0].split("\\\\")).filter(label -> !label.isEmpty()).forEach(label -> document.add(new Field(LABELS, label, POSITIONS_STORED)));
+                }
             }
             long sent = message.getSentDate().getTime();
             document.add(new StoredField(DATE, sent));
             document.add(new NumericDocValuesField(DATE, sent));
             Stream.of(message.getFrom()).
                     forEach(address -> {
-                        String converted = convertAddress(address);
-                        document.add(new Field(FROM, converted, POSITIONS_STORED));
-                        document.add(new SortedDocValuesField(FROM, new BytesRef(converted)));
+                        Pair<String, String> converted = convertAddress(address);
+                        document.add(new Field(FROM, converted.getLeft() + " " + converted.getRight(), POSITIONS_STORED));
+                        document.add(new SortedDocValuesField(FROM, new BytesRef(converted.getLeft() + " " + converted.getRight())));
                     });
             String[] messageid = message.getHeader(MESSAGE_ID);
             if (messageid != null && messageid.length > 0) {
@@ -118,10 +126,37 @@ public class MessageConverter {
             }
             for (RecipientType type : asList(RecipientType.TO, RecipientType.CC, RecipientType.BCC)) {
                 Address[] recipients = message.getRecipients(type);
+                String[] x = message.getHeader("X-" + type);
+                if (x == null) {
+                    x = message.getHeader("X-" + type.toString().toLowerCase());
+                }
+                if (x != null) {
+                    x = x[0].split(", ");
+                }
                 if (recipients != null) {
-                    for (Address recipient : recipients) {
-                        document.add(new Field(type.toString(), convertAddress(recipient), POSITIONS_STORED));
+                    List<Pair<String, String>> list = new ArrayList<>();
+                    for (int i = 0; i < recipients.length; i++) {
+                        Pair<String, String> pair = convertAddress(recipients[i]);
+                        if (pair.getLeft().equals(pair.getRight()) && x != null && x.length == recipients.length) {
+                            String personal = x[i];
+                            if (x[i].toLowerCase().contains(pair.getRight())) {
+                                int index = x[i].lastIndexOf(" ");
+                                if (index > 0) {
+                                    personal = x[i].substring(0, index).trim();
+                                }
+                            }
+                            if ((personal.startsWith("\"") && personal.endsWith("\""))
+                                    || (personal.startsWith("'") && personal.endsWith("'"))) {
+                                personal = personal.substring(1, personal.length() - 1);
+                            }
+                            if (!personal.isEmpty()) {
+                                pair = Pair.of(personal, pair.getRight());
+                            }
+                        }
+                        list.add(pair);
                     }
+                    String addresses = list.stream().map(pair -> pair.getLeft() + " " + pair.getRight()).collect(joining("\n"));
+                    document.add(new Field(type.toString(), addresses, POSITIONS_STORED));
                 }
             }
         }
@@ -136,10 +171,8 @@ public class MessageConverter {
             document.add(new StringField(MIME_TYPE, part.getContentType(), Store.YES));
             document.add(new StringField(MIME, mime.getContent().toString().trim(), Store.YES));
         } else if (part.getFileName() != null) {
-            if (part.getFileName() != null) {
-                document.add(new Field(FILE_NAME, part.getFileName(), POSITIONS_STORED));
-                document.add(new Field(ATTACHMENT, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
-            }
+            document.add(new Field(FILE_NAME, part.getFileName(), POSITIONS_STORED));
+            document.add(new Field(ATTACHMENT, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
         } else {
             if (part.getContentType().split(";")[0].equals("text/plain")) {
                 document.add(new Field(BODY_TEXT, content.toString().trim(), POSITIONS_STORED));
@@ -149,17 +182,16 @@ public class MessageConverter {
         }
     }
 
-    private static String convertAddress(Address address) {
+    private static Pair<String, String> convertAddress(Address address) {
         String personal = ((InternetAddress) address).getPersonal();
         String addr = ((InternetAddress) address).getAddress();
-        StringBuilder sb = new StringBuilder();
-        if (personal != null) {
-            sb.append(personal).append(" ");
+        if (addr == null) {
+            addr = "";
         }
-        if (addr != null) {
-            sb.append(addr).append(" ");
+        if (personal == null) {
+            personal = addr;
         }
-        return sb.toString().trim();
+        return Pair.of(personal.replaceAll("\\s+", " ").trim(), addr);
     }
 
     @Override
