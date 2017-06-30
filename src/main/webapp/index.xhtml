@@ -109,7 +109,7 @@
             <p:separator/>
             <div id="browser"/>
         </p:dialog>
-        <p:dialog showHeader="false" widgetVar="progressPanel" modal="true" height="24px" width="600px" resizable="false" draggable="false">
+        <p:dialog showHeader="false" widgetVar="progressPanel" modal="true" height="21px" width="600px" resizable="false" draggable="false">
             <p:progressBar widgetVar="pbAjax" ajax="true" value="#{applicationBean.progress}" labelTemplate="{value}%" styleClass="animated" global="false">
                 <p:ajax event="complete" update="growl menubar tableform tableform" oncomplete="PF('progressPanel').hide()"/>
             </p:progressBar>
@@ -117,7 +117,7 @@
         <p:dialog header="Cross Validation Effectiveness" widgetVar="cvDialog" dynamic="true" resizable="false">
             <h:outputText value="#{applicationBean.crossValidation}"/>
         </p:dialog>
-        <p:dialog id="themeDialog" header="New Theme" widgetVar="themeDialog" dynamic="true" resizable="false">
+        <p:dialog id="themeDialog" header="New Sensitivity Type" widgetVar="themeDialog" dynamic="true" resizable="false">
             <h:form prependId="false">
                 <p:inputText id="themeName" widgetVar="themeName" value="#{applicationBean.themeReplacement}" placeholder="Theme Name" validatorMessage="Please enter only alphanumerical characters or spaces">
                     <f:validateRegex pattern="^[0-9a-zA-Z]+[0-9a-zA-Z ]*$"/>
@@ -134,8 +134,26 @@
                     <p:growl id="messages"/>
                     <p:menubar id="menubar">
                         <p:submenu label="Corpora">
-                            <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled}"/>
+                            <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled || applicationBean.indexExists}"/>
                             <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
+                        </p:submenu>
+                        <p:submenu label="Model" rendered="#{applicationBean.indexExists}">
+                            <p:menuitem value="New Sensitivity Type" onclick="PF('themeDialog').show()"/>
+                            <p:submenu label="Load Sensitivity Type" rendered="#{!applicationBean.themes.isEmpty()}">
+                                <c:forEach var="theme" items="#{applicationBean.themes}">
+                                    <p:menuitem value="#{theme}" update="tableform body menubar">
+                                        <f:actionListener binding="#{applicationBean.loadAnnotations(theme)}"/>
+                                        <f:actionListener binding="#{lazyView.submit()}"/>
+                                    </p:menuitem>
+                                </c:forEach>
+                            </p:submenu>
+                            <p:menuitem value="Train" actionListener="#{applicationBean.train}" disabled="#{!applicationBean.trainingEnabled}" update="menubar"/>
+                            <p:menuitem value="Predict" actionListener="#{lazyView.predict}" onclick="PF('progressPanel').show(); PF('pbAjax').start();" update="tableform body" disabled="#{!applicationBean.predictionEnabled}" global="false"/>
+                            <p:menuitem value="Active Learning" actionListener="#{lazyView.activeLearning}" onclick="PF('progressPanel').show(); PF('pbAjax').start();" update="tableform body" global="false"/>
+                            <p:menuitem value="Export" ajax="false" disabled="#{!applicationBean.predictionEnabled}">
+                                <p:fileDownload value="#{applicationBean.file}" />
+                            </p:menuitem>
+                            <p:menuitem value="Cross Validation" onclick="PF('cvDialog').show()"/>
                         </p:submenu>
                         <p:submenu label="ePadd Word List" rendered="#{applicationBean.indexExists}">
                             <c:forEach var="lexicon" items="#{applicationBean.lexicons}">
@@ -146,26 +164,8 @@
                                 </p:submenu>
                             </c:forEach>
                         </p:submenu>
-                        <p:submenu label="Model" rendered="#{applicationBean.indexExists}">
-                            <p:menuitem value="New Theme" onclick="PF('themeDialog').show()"/>
-                            <p:submenu label="Load Theme" rendered="#{!applicationBean.themes.isEmpty()}">
-                                <c:forEach var="theme" items="#{applicationBean.themes}">
-                                    <p:menuitem value="#{theme}" update="tableform body menubar">
-                                        <f:actionListener binding="#{applicationBean.loadAnnotations(theme)}"/>
-                                        <f:actionListener binding="#{lazyView.submit()}"/>
-                                    </p:menuitem>
-                                </c:forEach>
-                            </p:submenu>
-                            <p:menuitem value="Train" actionListener="#{applicationBean.train}" disabled="#{!applicationBean.trainingEnabled}" update="menubar"/>
-                            <p:menuitem value="Predict" actionListener="#{lazyView.predict}" update="tableform body" disabled="#{!applicationBean.predictionEnabled}"/>
-                            <p:menuitem value="Active Learning" actionListener="#{lazyView.activeLearning}" update="tableform body"/>
-                            <p:menuitem value="Export" ajax="false" disabled="#{!applicationBean.predictionEnabled}">
-                                <p:fileDownload value="#{applicationBean.file}" />
-                            </p:menuitem>
-                            <p:menuitem value="Cross Validation" onclick="PF('cvDialog').show()"/>
-                        </p:submenu>
                         <f:facet name="options">
-                            <h:outputText value="Theme: #{applicationBean.theme}" style="float: left; padding: .3em 1em; font-weight: bold" rendered="#{applicationBean.indexExists}"/>
+                            <h:outputText value="Sensitivity Type: #{applicationBean.theme}" style="float: left; padding: .3em 1em; font-weight: bold" rendered="#{applicationBean.indexExists}"/>
                             <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" auto="true" label="Import Model" update="messages menubar" rendered="#{applicationBean.indexExists}"/>
                             <p:inputText value="#{lazyView.query}" placeholder="Search" rendered="#{applicationBean.indexExists}"/>
                             <p:commandButton icon="ui-icon-search" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
@@ -178,7 +178,7 @@
                                  rowsPerPageTemplate="10,25,100" selectionMode="single" selection="#{lazyView.selectedEmail}" id="emailTable" lazy="true"
                                  scrollable="true" scrollHeight="200" rendered="#{applicationBean.indexExists}">
                         <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
-                        <p:column headerText="Assessment" style="width: 128px; padding: 0; font-size: 0.95em">
+                        <p:column headerText="Assessment" style="width: 132px; padding: 0; font-size: 0.95em">
                             <p:selectBooleanButton id="protect" value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.styleClass}">
                                 <p:ajax update="protect release growl" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>

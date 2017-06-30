@@ -217,14 +217,17 @@ public class ApplicationBean {
     }
 
     public void predict() {
+        progress = 0;
         predictions = new float[is.getIndexReader().numDocs()];
         try {
             for (int i = 0; i < predictions.length; i++) {
                 predictions[i] = (float) svm_predict(model, new svm_node(getFeatures(is.doc(i), vocab, false)), kernel);
+                progress = (int) (100 * i / (predictions.length));
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        progress = 100;
     }
 
     private static double svm_predict(svm_model model, svm_node x, CustomKernel kernel) {
