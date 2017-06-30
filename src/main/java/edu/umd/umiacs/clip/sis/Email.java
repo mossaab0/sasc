@@ -1,6 +1,6 @@
 package edu.umd.umiacs.clip.sis;
 
-import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT;
+import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_BINARY;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BCC;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_HTML;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_TEXT;
@@ -20,6 +20,9 @@ import static java.util.stream.Collectors.toSet;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.document.Document;
+import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
+import static edu.umd.umiacs.clip.sis.MessageConverter.FILE_NAME;
+import org.apache.lucene.util.BytesRef;
 
 /**
  *
@@ -32,6 +35,7 @@ public class Email implements Serializable {
     private List<Pair<String, String>> to = new ArrayList<>();
     private List<Pair<String, String>> cc = new ArrayList<>();
     private List<Pair<String, String>> bcc = new ArrayList<>();
+    private List<Attachment> files = new ArrayList<>();
     private String subject = "";
     private String body = "";
     private String html = "";
@@ -55,7 +59,7 @@ public class Email implements Serializable {
         subject = doc.get(SUBJECT);
         body = doc.get(BODY_TEXT);
         html = doc.get(BODY_HTML);
-        attachment = doc.get(ATTACHMENT);
+        attachment = doc.get(ATTACHMENT_PARSED);
         from = getAddressPair(doc.get(FROM));
         String addresses = doc.get(TO);
         if (addresses != null && !addresses.isEmpty()) {
@@ -76,6 +80,16 @@ public class Email implements Serializable {
                     forEach(bcc::add);
         }
         date = new Date(new Long(doc.get(DATE)));
+
+        String[] names = doc.getValues(FILE_NAME);
+        if (names.length > 0) {
+            String[] types = doc.getValues(FILE_NAME);
+            BytesRef[] binaries = doc.getBinaryValues(ATTACHMENT_BINARY);
+            for (int i = 0; i < names.length; i++) {
+                files.add(new Attachment(names[i], types[i], binaries[i].bytes));
+            }
+        }
+
         if (annotations.get(id) != null) {
             this.annotation = annotations.get(id) ? 1 : 2;
         }
@@ -267,5 +281,19 @@ public class Email implements Serializable {
      */
     public void setHtml(String html) {
         this.html = html;
+    }
+
+    /**
+     * @return the files
+     */
+    public List<Attachment> getFiles() {
+        return files;
+    }
+
+    /**
+     * @param files the files to set
+     */
+    public void setFiles(List<Attachment> files) {
+        this.files = files;
     }
 }

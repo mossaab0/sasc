@@ -14,6 +14,7 @@ import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -43,8 +44,10 @@ public class MessageConverter {
     public static final String FROM = "From";
     public static final String BODY_TEXT = "plain";
     public static final String BODY_HTML = "html";
-    public static final String ATTACHMENT = "attachment";
+    public static final String ATTACHMENT_PARSED = "attachment-parsed";
+    public static final String ATTACHMENT_BINARY = "attachment-binary";
     public static final String FILE_NAME = "file-name";
+    public static final String FILE_TYPE = "file-type";
     public static final String MIME_TYPE = "mime-type";
     public static final String MIME = "mime";
     public static final String TO = RecipientType.TO.toString();
@@ -172,7 +175,9 @@ public class MessageConverter {
             document.add(new StringField(MIME, mime.getContent().toString().trim(), Store.YES));
         } else if (part.getFileName() != null) {
             document.add(new Field(FILE_NAME, part.getFileName(), POSITIONS_STORED));
-            document.add(new Field(ATTACHMENT, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
+            document.add(new StringField(FILE_TYPE, part.getContentType(), Store.YES));
+            document.add(new Field(ATTACHMENT_PARSED, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
+            document.add(new StoredField(ATTACHMENT_BINARY, IOUtils.toByteArray(part.getInputStream())));
         } else {
             if (part.getContentType().split(";")[0].equals("text/plain")) {
                 document.add(new Field(BODY_TEXT, content.toString().trim(), POSITIONS_STORED));

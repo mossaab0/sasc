@@ -61,7 +61,7 @@
             .email {
                 margin-right: 5px;
             }
-            
+
             .ui-widget-content .ui-state-highlight .email {
                 color: #fff;
             }
@@ -202,14 +202,13 @@
                 </h:form>
             </p:layoutUnit>
             <p:layoutUnit position="center" id="center">
-                <h:panelGroup style="white-space: pre-wrap" id="body" rendered="#{applicationBean.indexExists}">
+                <h:panelGroup id="body" rendered="#{applicationBean.indexExists}">
                     <h:outputText value="To: " rendered="#{lazyView.selectedEmail.to.size()>0}" style="font-weight: bold"/>
                     <ui:repeat var="address" value="#{lazyView.selectedEmail.to}">
                         <p:commandLink value="#{address.left}" title="#{address.right}"
                                        actionListener="#{lazyView.searchEmail(address.left, address.left)}"
                                        update="tableform body" styleClass="email"/>
                     </ui:repeat>
-                    <p:separator rendered="#{lazyView.selectedEmail.to.size()>0}"/>
 
                     <h:outputText value="Cc: " rendered="#{lazyView.selectedEmail.cc.size()>0}" style="font-weight: bold"/>
                     <ui:repeat var="address" value="#{lazyView.selectedEmail.cc}">
@@ -217,7 +216,6 @@
                                        actionListener="#{lazyView.searchEmail(address.left, address.left)}"
                                        update="tableform body" styleClass="email"/>
                     </ui:repeat>
-                    <p:separator rendered="#{lazyView.selectedEmail.cc.size()>0}"/>
 
                     <h:outputText value="Bcc: " rendered="#{lazyView.selectedEmail.bcc.size()>0}" style="font-weight: bold"/>
                     <ui:repeat var="address" value="#{lazyView.selectedEmail.bcc}">
@@ -225,13 +223,20 @@
                                        actionListener="#{lazyView.searchEmail(address.left, address.left)}"
                                        update="tableform body" styleClass="email"/>
                     </ui:repeat>
-                    <p:separator rendered="#{lazyView.selectedEmail.bcc.size()>0}"/>
+                    <p:separator rendered="#{lazyView.selectedEmail.to.size()>0 || lazyView.selectedEmail.cc.size()>0 || lazyView.selectedEmail.bcc.size()>0}"/>
+
+                    <h:form>
+                        <h:outputText value="Files: " rendered="#{lazyView.selectedEmail.files.size()>0}" style="font-weight: bold"/>
+                        <ui:repeat var="file" value="#{lazyView.selectedEmail.files}">
+                            <p:commandLink value="#{file.name}" title="#{file.size}" styleClass="email" ajax="false">
+                                <p:fileDownload value="#{file.download}"/>
+                            </p:commandLink>
+                        </ui:repeat>
+                    </h:form>
+                    <p:separator rendered="#{lazyView.selectedEmail.files.size()>0}"/>
 
                     <h:outputText value="#{lazyView.selectedEmail.html}" rendered="#{lazyView.selectedEmail.html != null}" escape="false"/>
-                    <h:outputText value="#{lazyView.selectedEmail.body}" rendered="#{lazyView.selectedEmail.html == null}"/>
-                    <p:separator rendered="#{lazyView.selectedEmail.attachment!=null}"/>
-                    <h:outputText value="Attachments: " style="font-weight: bold" rendered="#{lazyView.selectedEmail.attachment!=null}"/>
-                    <h:outputText value="#{lazyView.selectedEmail.attachment}"/>
+                    <h:outputText style="white-space: pre-wrap" value="#{lazyView.selectedEmail.body}" rendered="#{lazyView.selectedEmail.html == null}"/>
                 </h:panelGroup>
             </p:layoutUnit>
         </p:layout>

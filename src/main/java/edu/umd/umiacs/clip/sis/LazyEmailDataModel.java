@@ -1,6 +1,5 @@
 package edu.umd.umiacs.clip.sis;
 
-import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BCC;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_TEXT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.CC;
@@ -39,6 +38,7 @@ import org.apache.lucene.search.TopDocs;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortOrder;
 import static org.primefaces.model.SortOrder.DESCENDING;
+import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
 
 /**
  *
@@ -168,7 +168,7 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
                 predict(first, pageSize, sortOrder);
             }
         } else if (q != null && !q.isEmpty()) {
-            MultiFieldQueryParser parser = new MultiFieldQueryParser(new String[]{SUBJECT, BODY_TEXT, ATTACHMENT, FROM, FILE_NAME, TO, CC, BCC}, new EnglishAnalyzer());
+            MultiFieldQueryParser parser = new MultiFieldQueryParser(new String[]{SUBJECT, BODY_TEXT, ATTACHMENT_PARSED, FROM, FILE_NAME, TO, CC, BCC}, new EnglishAnalyzer());
             Query query = null;
             try {
                 query = parser.parse(q);

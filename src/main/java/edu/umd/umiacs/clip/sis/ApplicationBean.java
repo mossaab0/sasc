@@ -9,7 +9,6 @@ import ca.uwo.csd.ai.nlp.libsvm.ex.SVMTrainer;
 import ca.uwo.csd.ai.nlp.libsvm.svm_model;
 import ca.uwo.csd.ai.nlp.libsvm.svm_node;
 import ca.uwo.csd.ai.nlp.libsvm.svm_parameter;
-import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_TEXT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.MESSAGE_ID;
 import static edu.umd.umiacs.clip.sis.MessageConverter.SUBJECT;
@@ -70,6 +69,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.DefaultStreamedContent;
 import org.primefaces.model.StreamedContent;
+import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
 
 @ManagedBean(eager = true)
 @ApplicationScoped
@@ -193,7 +193,7 @@ public class ApplicationBean {
 
     private static SparseVector getFeatures(Document doc, Map<Pair<String, String>, Integer> vocab, boolean isTraining) {
         SparseVector vector = new SparseVector();
-        Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT).
+        Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT_PARSED).
                 forEach(field -> {
                     String content = doc.get(field);
                     if (content != null && !content.isEmpty()) {
@@ -322,7 +322,6 @@ public class ApplicationBean {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return new DefaultStreamedContent(new ByteArrayInputStream(tarOS.toByteArray()), "application/octet-stream", theme + ".zip");
     }
 
