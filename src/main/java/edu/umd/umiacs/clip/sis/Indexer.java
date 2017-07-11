@@ -16,15 +16,15 @@ import org.apache.lucene.store.FSDirectory;
  * @author Mossaab Bagdouri
  */
 public class Indexer {
-
+    
     public static void main(String[] args) throws Exception {
         Properties props = new Properties();
         props.setProperty("mail.mime.address.strict", "false");
-        String mboxPath = "/fs/clip-secrets/enron/enron.mbox";
-        String indexPath = "/fs/clip-secrets/enron/index";
-
+        String mboxPath = "/fs/mossaab_bagdouri.mbox";
+        String indexPath = "/fs/clip-scratch/mossaab/sasc/enron/index";
+        
         Session session = Session.getInstance(props, null);
-
+        
         System.out.println(new Date() + " - Started indexing.");
         MboxFile file = new MboxFile(new File(mboxPath));
         int count = file.getMessageCount();
@@ -42,5 +42,6 @@ public class Indexer {
             iw.commit();
         }
         System.out.println(new Date() + " - Finished indexing.");
+        MessageConverter.ERRORS.entrySet().forEach(System.out::println);
     }
 }

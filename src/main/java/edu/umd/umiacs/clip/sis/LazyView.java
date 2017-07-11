@@ -12,7 +12,6 @@ import javax.faces.bean.ManagedProperty;
 import javax.faces.bean.ViewScoped;
 import javax.faces.context.FacesContext;
 import javax.faces.event.AjaxBehaviorEvent;
-import org.primefaces.component.selectbooleanbutton.SelectBooleanButton;
 import org.primefaces.component.selectonebutton.SelectOneButton;
 import org.primefaces.event.SelectEvent;
 
@@ -91,6 +90,7 @@ public class LazyView implements Serializable {
     }
 
     public void updateAnnotations(Email email) {
+        this.selectedEmail = email;
         String message;
         if (email.getAnnotation() == 0) {
             applicationBean.getAnnotations().remove(email.getId());

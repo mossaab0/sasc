@@ -1,6 +1,7 @@
 package edu.umd.umiacs.clip.sis;
 
 import java.io.ByteArrayInputStream;
+import java.io.Serializable;
 import org.primefaces.model.DefaultStreamedContent;
 import org.primefaces.model.StreamedContent;
 
@@ -8,7 +9,7 @@ import org.primefaces.model.StreamedContent;
  *
  * @author Mossaab Bagdouri
  */
-public class Attachment {
+public class Attachment implements Serializable {
 
     private final String name;
     private final String type;

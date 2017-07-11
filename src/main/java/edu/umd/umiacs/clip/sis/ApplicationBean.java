@@ -12,7 +12,6 @@ import ca.uwo.csd.ai.nlp.libsvm.svm_parameter;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_TEXT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.MESSAGE_ID;
 import static edu.umd.umiacs.clip.sis.MessageConverter.SUBJECT;
-import edu.umd.umiacs.clip.tools.classifier.ConfusionMatrix;
 import static edu.umd.umiacs.clip.tools.io.AllFiles.REMOVE_OLD_FILE;
 import static edu.umd.umiacs.clip.tools.io.AllFiles.lines;
 import static edu.umd.umiacs.clip.tools.io.AllFiles.readAllLines;
@@ -70,6 +69,7 @@ import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.DefaultStreamedContent;
 import org.primefaces.model.StreamedContent;
 import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
+import org.apache.lucene.util.BytesRefHash.MaxBytesLengthExceededException;
 
 @ManagedBean(eager = true)
 @ApplicationScoped
@@ -110,10 +110,9 @@ public class ApplicationBean {
     private transient IndexSearcher is;
     private Map<String, Boolean> annotations;
     private final List<Pair<String, List<Pair<String, String>>>> lexicons = new ArrayList<>();
-    //private String rootPath = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home") + "/SIS") + "/";
-    private String rootPath = "/fs/clip-scratch/mossaab/sasc/enron/";
-    private String indexPath = rootPath + "index";
-    private String annotationsPath = rootPath + "annotations/";
+    public static final String ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", "/scratch0/enron") + "/";
+    private String indexPath = ROOT_PATH + "index";
+    private String annotationsPath = ROOT_PATH + "annotations/";
     private String theme;
     private static final String VOCAB_NAME = "vocab.txt";
     private static final String MODEL_NAME = "model.svm";
@@ -131,6 +130,7 @@ public class ApplicationBean {
 
     public ApplicationBean() {
         try {
+            System.err.println(indexPath);
             File indexFile = new File(indexPath);
             if (indexFile.exists()) {
                 Directory directory = FSDirectory.open(indexFile.toPath());
@@ -398,7 +398,10 @@ public class ApplicationBean {
         isIndexing = true;
         progress = 0;
         Properties props = new Properties();
-        props.setProperty("mail.mime.address.strict", "false");
+        props.put("mail.mime.address.strict", false);
+        props.put("mail.imaps.partialfetch", false);
+        props.put("mail.mime.base64.ignoreerrors", true);
+        props.put("mail.mime.multipart.ignoreexistingboundaryparameter", true);
         Session session = Session.getInstance(props, null);
         FacesMessage msg;
         System.out.println(new Date() + " - Started indexing.");
@@ -411,7 +414,11 @@ public class ApplicationBean {
             FileUtils.removeDir(new File(indexPath));
             try (IndexWriter iw = new IndexWriter(FSDirectory.open(new File(indexPath).toPath()), new IndexWriterConfig(new EnglishAnalyzer()))) {
                 for (int i = 0; i < count; i++) {
-                    iw.addDocument(new MessageConverter(new MStorMessage(session, file.getMessageAsStream(i))).toDocument());
+                    try {
+                        iw.addDocument(new MessageConverter(new MStorMessage(session, file.getMessageAsStream(i))).toDocument());
+                    } catch (MaxBytesLengthExceededException e) {
+                        e.printStackTrace();
+                    }
                     if (i > 0 && i % 1000 == 0) {
                         System.out.println(new Date() + " - Messages indexed: " + (i + 1));
                         iw.commit();
@@ -435,6 +442,7 @@ public class ApplicationBean {
         System.out.println(new Date() + " - Finished indexing.");
         FacesContext.getCurrentInstance().addMessage(null, msg);
         isIndexing = false;
+        MessageConverter.ERRORS.entrySet().forEach(System.out::println);
     }
 
     public boolean isIndexingEnabled() {

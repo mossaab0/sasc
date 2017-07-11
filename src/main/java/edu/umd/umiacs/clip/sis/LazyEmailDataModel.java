@@ -110,7 +110,8 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
     private void predict(int first, int pageSize, SortOrder sortOrder) {
         data.clear();
         map.clear();
-        Stream<Pair<Integer, Float>> stream = range(0, predictions.length).boxed().map(i -> Pair.of(i, predictions[i]));
+        Stream<Pair<Integer, Float>> stream = range(0, predictions.length).
+                boxed().map(i -> Pair.of(i, predictions[i]));
         if (sortOrder != null) {
             if (sortOrder.equals(DESCENDING)) {
                 stream = stream.sorted(comparing(Pair::getRight, reverseOrder()));

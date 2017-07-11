@@ -59,3 +59,8 @@ By default, gmail won't allow the app to access your email. Here are some option
         --verbosity
           Verbosity level. Silent = 0, verbose = 1, print content to stdout = 2.
           Default: 2
+
+## Special Installation Note for Tomcat
+Copy `jcharset-2.0.jar` and `jutf7-1.0.0.jar` inside `Apache Tomcat {version}/lib`.
+The reason is https://bugs.openjdk.java.net/browse/JDK-4619777.
+Or modify `JAVA_OPTS` as indicated in https://stackoverflow.com/a/11133772/1013394

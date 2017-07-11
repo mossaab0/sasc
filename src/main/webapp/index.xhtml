@@ -109,9 +109,52 @@
             <p:separator/>
             <div id="browser"/>
         </p:dialog>
+        <p:dialog widgetVar="helpDialog" header="Help" modal="true" width="50%">
+            <ul>
+                <li>
+                    This application allows you to annotate your personal email collection that you plan
+                    to release or share in order to protect some sensitive data.</li>
+                <li>
+                    The first stage is to index an existing mbox file
+                    (e.g., you can get Gmail emails from
+                    <a href="https://takeout.google.com/settings/takeout" target="_blank">here</a>).
+                    If this option (under the menu Collection) is disabled,
+                    this typically means that the index has already been created.
+                </li>
+                <li>
+                    A default sensitivity type is already created for you.
+                    If you are concerned about more than one type,
+                    you can create / load them from the Model menu.
+                    The annotations and models are attached to a specific sensitivity type.
+                </li>
+                <li>
+                    To search for sensitive content, you can use issue a query through the search box,
+                    or select a list of words from the ePadd Word List.
+                    The results are, then, sorted by the retrieval score.
+                    You can annotate for protection or release,
+                    or remove an existing annotation.
+                </li>
+                <li>
+                    Under the Model menu,
+                    you can train a classifier based on the annotations you have
+                    already made, load/export a pre-trained model,
+                    or let the classifier guide your annotations through active learning.
+                    You can also generate predictions of the sensitivity of your emails.
+                    Note that both prediction and active learning are lengthy processes,
+                    as the classifier is applied to your entire collection of emails.
+                    Finally, you can estimate the quality of the classifier model
+                    with 10-folds cross validation.
+                </li>
+                <li>
+                    Your annotations are immediately persisted into disk.
+                    You can review them under the Corpora menu even after
+                    restarting the application.
+                </li>
+            </ul>
+        </p:dialog>
         <p:dialog showHeader="false" widgetVar="progressPanel" modal="true" height="21px" width="600px" resizable="false" draggable="false">
             <p:progressBar widgetVar="pbAjax" ajax="true" value="#{applicationBean.progress}" labelTemplate="{value}%" styleClass="animated" global="false">
-                <p:ajax event="complete" update="growl menubar tableform tableform" oncomplete="PF('progressPanel').hide()"/>
+                <p:ajax event="complete" update="growl menubar tableform body" oncomplete="PF('progressPanel').hide()"/>
             </p:progressBar>
         </p:dialog>
         <p:dialog header="Cross Validation Effectiveness" widgetVar="cvDialog" dynamic="true" resizable="false">
@@ -164,6 +207,7 @@
                                 </p:submenu>
                             </c:forEach>
                         </p:submenu>
+                        <p:menuitem value="Help" onclick="PF('helpDialog').show()"/>
                         <f:facet name="options">
                             <h:outputText value="Sensitivity Type: #{applicationBean.theme}" style="float: left; padding: .3em 1em; font-weight: bold" rendered="#{applicationBean.indexExists}"/>
                             <p:fileUpload fileUploadListener="#{applicationBean.uploadModel}" auto="true" label="Import Model" update="messages menubar" rendered="#{applicationBean.indexExists}"/>
@@ -179,11 +223,11 @@
                                  scrollable="true" scrollHeight="200" rendered="#{applicationBean.indexExists}">
                         <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
                         <p:column headerText="Assessment" style="width: 132px; padding: 0; font-size: 0.95em">
-                            <p:selectBooleanButton id="protect" value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.styleClass}">
-                                <p:ajax update="protect release growl" listener="#{lazyView.updateAnnotations(email)}" />
+                            <p:selectBooleanButton value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.styleClass}">
+                                <p:ajax update="growl tableform body" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
-                            <p:selectBooleanButton id="release" value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.styleClass}">
-                                <p:ajax update="protect release growl" listener="#{lazyView.updateAnnotations(email)}" />
+                            <p:selectBooleanButton value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.styleClass}">
+                                <p:ajax update="growl tableform body" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
                         </p:column>
                         <p:column headerText="Score" sortBy="#{email.score}" width="10%">

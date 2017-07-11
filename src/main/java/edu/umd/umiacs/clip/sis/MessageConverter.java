@@ -3,7 +3,10 @@ package edu.umd.umiacs.clip.sis;
 import java.io.IOException;
 import java.util.ArrayList;
 import static java.util.Arrays.asList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import static java.util.stream.Collectors.joining;
 import java.util.stream.Stream;
 import javax.mail.Address;
@@ -14,6 +17,7 @@ import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.document.Document;
@@ -28,6 +32,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TaggedIOException;
 import org.xml.sax.SAXException;
 
 /**
@@ -54,6 +59,7 @@ public class MessageConverter {
     public static final String CC = RecipientType.CC.toString();
     public static final String BCC = RecipientType.BCC.toString();
     private static final FieldType POSITIONS_STORED = new FieldType();
+    public static final Map<Pair<String, String>, Integer> ERRORS = new HashMap<>();
 
     static {
         POSITIONS_STORED.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
@@ -99,6 +105,9 @@ public class MessageConverter {
             if (message.getSubject() == null) {
                 return;
             }
+            if (document.get(SUBJECT) != null) {
+                return;
+            }
             document.add(new Field(SUBJECT, message.getSubject(), POSITIONS_STORED));
             document.add(new SortedDocValuesField(SUBJECT, new BytesRef(message.getSubject())));
             String[] threadid = message.getHeader(THREAD_ID);
@@ -114,7 +123,8 @@ public class MessageConverter {
                     Stream.of(labels[0].split("\\\\")).filter(label -> !label.isEmpty()).forEach(label -> document.add(new Field(LABELS, label, POSITIONS_STORED)));
                 }
             }
-            long sent = message.getSentDate().getTime();
+            Date date = message.getSentDate();
+            long sent = date == null ? 0 : date.getTime();
             document.add(new StoredField(DATE, sent));
             document.add(new NumericDocValuesField(DATE, sent));
             Stream.of(message.getFrom()).
@@ -163,27 +173,43 @@ public class MessageConverter {
                 }
             }
         }
-        Object content = part.getContent();
-        if (content instanceof Multipart) {
-            Multipart multi = (Multipart) content;
-            for (int i = 0; i < multi.getCount(); i++) {
-                addContent(multi.getBodyPart(i), document);
-            }
-        } else if (content instanceof MimeMessage) {
-            MimeMessage mime = (MimeMessage) content;
-            document.add(new StringField(MIME_TYPE, part.getContentType(), Store.YES));
-            document.add(new StringField(MIME, mime.getContent().toString().trim(), Store.YES));
-        } else if (part.getFileName() != null) {
-            document.add(new Field(FILE_NAME, part.getFileName(), POSITIONS_STORED));
-            document.add(new StringField(FILE_TYPE, part.getContentType(), Store.YES));
-            document.add(new Field(ATTACHMENT_PARSED, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
-            document.add(new StoredField(ATTACHMENT_BINARY, IOUtils.toByteArray(part.getInputStream())));
-        } else {
-            if (part.getContentType().split(";")[0].equals("text/plain")) {
-                document.add(new Field(BODY_TEXT, content.toString().trim(), POSITIONS_STORED));
+        try {
+            Object content = part.getContent();
+            if (content instanceof Multipart) {
+                Multipart multi = (Multipart) content;
+                for (int i = 0; i < multi.getCount(); i++) {
+                    addContent(multi.getBodyPart(i), document);
+                }
+            } else if (content instanceof MimeMultipart) {
+                MimeMultipart multi = (MimeMultipart) content;
+                for (int i = 0; i < multi.getCount(); i++) {
+                    addContent(multi.getBodyPart(i), document);
+                }
+            } else if (content instanceof MimeMessage) {
+                MimeMessage mime = (MimeMessage) content;
+                if (mime.getContent() instanceof MimeMultipart) {
+                    addContent(mime, document);
+                }
+            } else if (part.getFileName() != null) {
+                try {
+                    document.add(new Field(ATTACHMENT_PARSED, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
+                } catch (TikaException | IOException e) {
+                    Pair<String, String> key = Pair.of(e.getClass().getName(), e.getMessage());
+                    ERRORS.put(key, 1 + ERRORS.getOrDefault(e, 0));
+                }
+                document.add(new Field(FILE_NAME, part.getFileName(), POSITIONS_STORED));
+                document.add(new StringField(FILE_TYPE, part.getContentType(), Store.YES));
+                document.add(new StoredField(ATTACHMENT_BINARY, IOUtils.toByteArray(part.getInputStream())));
             } else {
-                document.add(new Field(BODY_HTML, content.toString().trim(), POSITIONS_STORED));
+                if (part.getContentType().split(";")[0].equals("text/plain")) {
+                    document.add(new Field(BODY_TEXT, content.toString().trim(), POSITIONS_STORED));
+                } else {
+                    document.add(new Field(BODY_HTML, content.toString().trim(), POSITIONS_STORED));
+                }
             }
+        } catch (IOException | MessagingException | TikaException | SAXException e) {
+            Pair<String, String> key = Pair.of(e.getClass().getName(), e.getMessage().replaceAll("\\s+", " ").trim());
+            ERRORS.put(key, 1 + ERRORS.getOrDefault(key, 0));
         }
     }
 
