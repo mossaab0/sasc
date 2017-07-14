@@ -1,11 +1,11 @@
 package edu.umd.umiacs.clip.sis;
 
+import edu.umd.umiacs.clip.sis.utils.FilesUtils;
+import edu.umd.umiacs.clip.sis.utils.LuceneUtils;
 import com.beust.jcommander.IDefaultProvider;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
-import edu.umd.umiacs.clip.tools.io.AllFiles;
-import edu.umd.umiacs.clip.tools.lang.LuceneUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -20,15 +20,11 @@ import javax.mail.Folder;
 import static javax.mail.Folder.READ_ONLY;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
 import javax.mail.Session;
 import javax.mail.Store;
-import javax.mail.internet.MimeMessage;
 import javax.mail.search.BodyTerm;
 import javax.mail.search.OrTerm;
 import javax.mail.search.SubjectTerm;
-import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
@@ -120,7 +116,7 @@ public class SecretSearcher {
                             System.out.println(content + "\n");
                         }
                         if (output != null) {
-                            AllFiles.write(output + "/" + (fileId++) + ".txt", asList(content));
+                            FilesUtils.write(output + "/" + (fileId++) + ".txt", asList(content));
                         }
                         found.add(content);
                     }
@@ -158,7 +154,7 @@ public class SecretSearcher {
                                 System.out.println(content + "\n");
                             }
                             if (output != null) {
-                                AllFiles.write(output + "/" + (fileId++) + ".txt", asList(content));
+                                FilesUtils.write(output + "/" + (fileId++) + ".txt", asList(content));
                             }
                             found.add(content);
                         }

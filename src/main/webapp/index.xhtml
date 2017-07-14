@@ -58,6 +58,16 @@
                 border: 1px solid #a8a8a8 !important;
             }
 
+            .protect {
+                background: #f08080 -webkit-gradient(linear,left top,left bottom,from(rgba(255,255,255,0.8)),to(rgba(255,255,255,0))) !important;
+                border: 1px solid #a8a8a8 !important;
+            }
+
+            .release {
+                background: #00ff7f -webkit-gradient(linear,left top,left bottom,from(rgba(255,255,255,0.8)),to(rgba(255,255,255,0))) !important;
+                border: 1px solid #a8a8a8 !important;
+            }
+
             .email {
                 margin-right: 5px;
             }
@@ -113,7 +123,12 @@
             <ul>
                 <li>
                     This application allows you to annotate your personal email collection that you plan
-                    to release or share in order to protect some sensitive data.</li>
+                    to release or share in order to protect some sensitive data.
+                    Then, a classifier (i.e., a computer algorithm) can be
+                    automatically trained to detect which emails are likely
+                    to be sensitive by looking at your annotations and
+                    learning a pattern.
+                </li>
                 <li>
                     The first stage is to index an existing mbox file
                     (e.g., you can get Gmail emails from
@@ -178,7 +193,7 @@
                     <p:menubar id="menubar">
                         <p:submenu label="Corpora">
                             <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled || applicationBean.indexExists}"/>
-                            <p:menuitem value="Review" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
+                            <p:menuitem value="Review Annotations" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
                         </p:submenu>
                         <p:submenu label="Model" rendered="#{applicationBean.indexExists}">
                             <p:menuitem value="New Sensitivity Type" onclick="PF('themeDialog').show()"/>
@@ -223,10 +238,10 @@
                                  scrollable="true" scrollHeight="200" rendered="#{applicationBean.indexExists}">
                         <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
                         <p:column headerText="Assessment" style="width: 132px; padding: 0; font-size: 0.95em">
-                            <p:selectBooleanButton value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.styleClass}">
+                            <p:selectBooleanButton value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.protectStyleClass}">
                                 <p:ajax update="growl tableform body" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
-                            <p:selectBooleanButton value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.styleClass}">
+                            <p:selectBooleanButton value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.releaseStyleClass}">
                                 <p:ajax update="growl tableform body" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
                         </p:column>

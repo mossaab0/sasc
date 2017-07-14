@@ -1,5 +1,7 @@
 package edu.umd.umiacs.clip.sis;
 
+import edu.umd.umiacs.clip.sis.utils.LangUtils;
+import edu.umd.umiacs.clip.sis.utils.LuceneUtils;
 import ca.uwo.csd.ai.nlp.common.SparseVector;
 import ca.uwo.csd.ai.nlp.kernel.CustomKernel;
 import ca.uwo.csd.ai.nlp.kernel.KernelManager;
@@ -9,15 +11,13 @@ import ca.uwo.csd.ai.nlp.libsvm.ex.SVMTrainer;
 import ca.uwo.csd.ai.nlp.libsvm.svm_model;
 import ca.uwo.csd.ai.nlp.libsvm.svm_node;
 import ca.uwo.csd.ai.nlp.libsvm.svm_parameter;
+import static edu.umd.umiacs.clip.sis.utils.FilesUtils.lines;
+import static edu.umd.umiacs.clip.sis.utils.FilesUtils.REMOVE_OLD_FILE;
+import static edu.umd.umiacs.clip.sis.utils.FilesUtils.readAllLines;
+import static edu.umd.umiacs.clip.sis.utils.FilesUtils.write;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_TEXT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.MESSAGE_ID;
 import static edu.umd.umiacs.clip.sis.MessageConverter.SUBJECT;
-import static edu.umd.umiacs.clip.tools.io.AllFiles.REMOVE_OLD_FILE;
-import static edu.umd.umiacs.clip.tools.io.AllFiles.lines;
-import static edu.umd.umiacs.clip.tools.io.AllFiles.readAllLines;
-import static edu.umd.umiacs.clip.tools.io.AllFiles.write;
-import edu.umd.umiacs.clip.tools.lang.LangUtils;
-import edu.umd.umiacs.clip.tools.lang.LuceneUtils;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -110,7 +110,7 @@ public class ApplicationBean {
     private transient IndexSearcher is;
     private Map<String, Boolean> annotations;
     private final List<Pair<String, List<Pair<String, String>>>> lexicons = new ArrayList<>();
-    public static final String ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", "/scratch0/enron") + "/";
+    public static final String ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home", "/scratch0/enron")) + "/";
     private String indexPath = ROOT_PATH + "index";
     private String annotationsPath = ROOT_PATH + "annotations/";
     private String theme;

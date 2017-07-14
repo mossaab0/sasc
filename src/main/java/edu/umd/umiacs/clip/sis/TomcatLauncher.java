@@ -1,5 +1,8 @@
 package edu.umd.umiacs.clip.sis;
 
+import java.awt.Desktop;
+import java.io.File;
+import java.net.URI;
 //import org.apache.catalina.WebResourceRoot;
 //import org.apache.catalina.core.StandardContext;
 //import org.apache.catalina.startup.Tomcat;
@@ -9,7 +12,7 @@ package edu.umd.umiacs.clip.sis;
 public class TomcatLauncher {
 
     public static void main(String[] args) throws Exception {
-        /*String webappDirLocation = "src/main/webapp/";
+/*        String webappDirLocation = "src/main/webapp/";
         Tomcat tomcat = new Tomcat();
 
         String webPort = System.getenv("PORT");
@@ -20,7 +23,6 @@ public class TomcatLauncher {
         tomcat.setPort(Integer.valueOf(webPort));
 
         StandardContext ctx = (StandardContext) tomcat.addWebapp("/", new File(webappDirLocation).getAbsolutePath());
-        System.out.println("configuring app with basedir: " + new File("./" + webappDirLocation).getAbsolutePath());
 
         // Declare an alternative location for your "WEB-INF/classes" dir
         // Servlet 3.0 annotation will work
@@ -31,6 +33,13 @@ public class TomcatLauncher {
         ctx.setResources(resources);
 
         tomcat.start();
+        String url = "http://localhost:" + webPort;
+        if (Desktop.isDesktopSupported()) {
+            Desktop.getDesktop().browse(new URI(url));
+        } else {
+            Runtime runtime = Runtime.getRuntime();
+            runtime.exec("/usr/bin/firefox -new-window " + url);
+        }
         tomcat.getServer().await();*/
     }
 }

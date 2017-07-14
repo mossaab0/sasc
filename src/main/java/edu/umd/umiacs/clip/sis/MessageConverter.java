@@ -32,7 +32,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
-import org.apache.tika.io.TaggedIOException;
 import org.xml.sax.SAXException;
 
 /**
@@ -193,7 +192,7 @@ public class MessageConverter {
             } else if (part.getFileName() != null) {
                 try {
                     document.add(new Field(ATTACHMENT_PARSED, new Tika().parseToString(part.getInputStream()).trim(), POSITIONS_STORED));
-                } catch (TikaException | IOException e) {
+                } catch (Exception e) {
                     Pair<String, String> key = Pair.of(e.getClass().getName(), e.getMessage());
                     ERRORS.put(key, 1 + ERRORS.getOrDefault(e, 0));
                 }

@@ -265,8 +265,22 @@ public class Email implements Serializable {
         annotation = val ? 2 : 0;
     }
 
-    public String getStyleClass() {
-        return annotation == 0 ? "inactive" : "";
+    public String getProtectStyleClass() {
+        switch (annotation) {
+            case 1:
+                return "protect";
+            default:
+                return "inactive";
+        }
+    }
+
+    public String getReleaseStyleClass() {
+        switch (annotation) {
+            case 2:
+                return "release";
+            default:
+                return "inactive";
+        }
     }
 
     /**
