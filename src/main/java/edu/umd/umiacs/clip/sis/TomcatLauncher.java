@@ -3,16 +3,16 @@ package edu.umd.umiacs.clip.sis;
 import java.awt.Desktop;
 import java.io.File;
 import java.net.URI;
-//import org.apache.catalina.WebResourceRoot;
-//import org.apache.catalina.core.StandardContext;
-//import org.apache.catalina.startup.Tomcat;
-//import org.apache.catalina.webresources.DirResourceSet;
-//import org.apache.catalina.webresources.StandardRoot;
+import org.apache.catalina.WebResourceRoot;
+import org.apache.catalina.core.StandardContext;
+import org.apache.catalina.startup.Tomcat;
+import org.apache.catalina.webresources.DirResourceSet;
+import org.apache.catalina.webresources.StandardRoot;
 
 public class TomcatLauncher {
 
     public static void main(String[] args) throws Exception {
-/*        String webappDirLocation = "src/main/webapp/";
+        String webappDirLocation = "src/main/webapp/";
         Tomcat tomcat = new Tomcat();
 
         String webPort = System.getenv("PORT");
@@ -40,6 +40,6 @@ public class TomcatLauncher {
             Runtime runtime = Runtime.getRuntime();
             runtime.exec("/usr/bin/firefox -new-window " + url);
         }
-        tomcat.getServer().await();*/
+        tomcat.getServer().await();
     }
 }
