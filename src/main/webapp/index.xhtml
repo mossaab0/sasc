@@ -120,50 +120,119 @@
             <div id="browser"/>
         </p:dialog>
         <p:dialog widgetVar="helpDialog" header="Help" modal="true" width="50%">
+            <h1>Purpose</h1>
             <ul>
                 <li>
-                    This application allows you to annotate your personal email collection that you plan
-                    to release or share in order to protect some sensitive data.
-                    Then, a classifier (i.e., a computer algorithm) can be
-                    automatically trained to detect which emails are likely
-                    to be sensitive by looking at your annotations and
-                    learning a pattern.
+                    This application allows you to label messages in your
+                    personal email collection in order to protect content
+                    that you do not wish to be seen by others.
                 </li>
                 <li>
-                    The first stage is to index an existing mbox file
-                    (e.g., you can get Gmail emails from
+                    You will use labels on emails you know to be private to
+                    automatically train a classifier (an automatic learning
+                    program) to detect other messages in your email collection
+                    that might contain sensitive content. The classifier finds
+                    patterns in the messages to which you assigned labels, and
+                    then finds other emails which fit those patterns.
+                    For example, maybe you labeled several emails from Sally
+                    about “surprise party” as sensitive, so other emails from
+                    Sally with those words might be sensitive too.
+                </li>
+            </ul>
+            <h1>Logistics</h1>
+            <ul>
+                <li>
+                    The first step is to prepare your email collection by
+                    building an index. This version of the system requires email
+                    collections to be in “mbox” format.  If you have a gmail
+                    account you can download all of your messages in mbox format
+                    from
                     <a href="https://takeout.google.com/settings/takeout" target="_blank">here</a>).
-                    If this option (under the menu Collection) is disabled,
-                    this typically means that the index has already been created.
                 </li>
                 <li>
-                    A general sensitivity type is already created for you.
-                    If you are concerned about more than one type,
-                    you can create / load them from the Model menu.
-                    The annotations and models are attached to a specific sensitivity type.
+                    After you have indexed your email collection,
+                    the index option in the Collection menu will be disabled.
+                </li>
+            </ul>
+            <h1>Manually Labeling Emails</h1>
+            <ul>
+                <li>
+                    A “general” sensitivity type is predefined. If you prefer to
+                    mark emails simply “sensitive” or “not sensitive”, you can
+                    just start labeling messages.
                 </li>
                 <li>
-                    To search for sensitive content, you can issue a query through the search box,
-                    or select a list of words from the ePadd Word List.
-                    The results are, then, sorted by the retrieval score.
-                    You can annotate for protection or release,
-                    or remove an existing annotation.
+                    If you’ve like to get more specific, you can define your own
+                    labels for sensitive content (e.g., “financial” or “family”)
+                    using the Model menu.  
                 </li>
                 <li>
-                    Under the Model menu,
-                    you can train a classifier based on the annotations you have
-                    already made, load/export a pre-trained model,
-                    or let the classifier guide your annotations through active learning.
-                    You can also generate predictions of the sensitivity of your emails.
-                    Note that both prediction and active learning are lengthy processes,
-                    as the classifier is applied to your entire collection of emails.
-                    Finally, you can estimate the quality of the classifier model
-                    with 10-folds cross validation.
+                    To find messages to label, do a word-based search.  For
+                    example, you could search for “birthday” to find messages
+                    about birthday parties. The results that best match your
+                    query will be listed first. 
                 </li>
                 <li>
-                    Your annotations are immediately persisted into disk.
-                    You can review them under the Corpora menu even after
-                    restarting the application.
+                    If only the messages about surprise parties are sensitive,
+                    you should click on the “Protect” button for those and on
+                    the “Release” button for the others.  
+                </li>
+                <li>
+                    It is important that you label some messages “Protect” and
+                    some messages “Release” so that the classifier can learn the
+                    differences between those two types of messages.  
+                </li>
+                <li>
+                    Any labels you assign are saved immediately, so they won’t
+                    be lost if you stop for a while and come back to this later.
+                    When you return, just use the Corpus menu to see the labels
+                    you have already assigned.
+                </li>
+            </ul>
+            <h1>Help For Manually Finding Sensitive Emails</h1>
+            <ul>
+                <li>
+                    We have included preset queries for topics that we
+                    anticipate many people find sensitive. This list was
+                    originally developed by the ePADD project at Stanford
+                    University (and is therefore referred to as the ePadd word
+                    list).
+                </li>
+            </ul>
+            <h1>Training the Classifier </h1>
+            <ul>
+                <li>
+                    Once you have labeled some messages you can use the Model
+                    menu to train a classifier based on your labels.
+                </li>
+                <li>
+                    From the Model menu, you can also save (“export”) a
+                    classifier for use by another program, or load a classifier
+                    that you have previously saved. 
+                </li>
+                <li>
+                    Once you have trained or loaded a pretrained classifier, you
+                    can use the classifier to find more emails to label.  One
+                    way to do this is to run the classifier; it will find new
+                    documents that are like the ones you chose to protect.  
+                </li>
+                <li>
+                    Alternatively, you can use a process called “active learning”
+                    to have the model suggest one document at a time for you to
+                    label.  In this case, the documents presented will not be
+                    those most likely to require protection, but rather those
+                    about which the classifier is most uncertain.  Once you have
+                    a good classifier, this is a way to quickly make it even better.   
+                </li>
+                <li>
+                    Finally, you can estimate the quality of your classifier.
+                    We do this by training with most of the labels you assigned
+                    while reserving a few manually-labeled messages. We then see
+                    how well the classifier can predict the way you labeled
+                    those reserved messages.
+                </li>
+                <li>
+                    If you have questions, you can send email to oard@umd.edu.
                 </li>
             </ul>
         </p:dialog>
@@ -191,7 +260,7 @@
                 <h:form prependId="false">  
                     <p:growl id="messages"/>
                     <p:menubar id="menubar">
-                        <p:submenu label="Corpus">
+                        <p:submenu label="Collection">
                             <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled || applicationBean.indexExists}"/>
                             <p:menuitem value="Review Annotations" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
                         </p:submenu>

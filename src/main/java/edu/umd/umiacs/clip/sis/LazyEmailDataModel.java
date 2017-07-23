@@ -8,7 +8,6 @@ import static edu.umd.umiacs.clip.sis.MessageConverter.FROM;
 import static edu.umd.umiacs.clip.sis.MessageConverter.MESSAGE_ID;
 import static edu.umd.umiacs.clip.sis.MessageConverter.SUBJECT;
 import static edu.umd.umiacs.clip.sis.MessageConverter.TO;
-import static hidden.org.codehaus.plexus.interpolation.util.StringUtils.capitalizeFirstLetter;
 import java.io.IOException;
 import java.util.ArrayList;
 import static java.util.Comparator.comparing;
@@ -39,6 +38,7 @@ import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortOrder;
 import static org.primefaces.model.SortOrder.DESCENDING;
 import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
+import static org.apache.commons.lang3.StringUtils.capitalize;
 
 /**
  *
@@ -83,7 +83,7 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
         map.clear();
         SortField sort = (sortField == null || sortField.equals("score"))
                 ? new SortField(null, SCORE, sortOrder == DESCENDING)
-                : new SortField(capitalizeFirstLetter(sortField),
+                : new SortField(capitalize(sortField),
                         sortField.equals("date") ? LONG : STRING,
                         sortOrder == DESCENDING);
         if (is != null) {
