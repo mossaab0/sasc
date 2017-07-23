@@ -137,13 +137,13 @@
                     this typically means that the index has already been created.
                 </li>
                 <li>
-                    A default sensitivity type is already created for you.
+                    A general sensitivity type is already created for you.
                     If you are concerned about more than one type,
                     you can create / load them from the Model menu.
                     The annotations and models are attached to a specific sensitivity type.
                 </li>
                 <li>
-                    To search for sensitive content, you can use issue a query through the search box,
+                    To search for sensitive content, you can issue a query through the search box,
                     or select a list of words from the ePadd Word List.
                     The results are, then, sorted by the retrieval score.
                     You can annotate for protection or release,
@@ -191,7 +191,7 @@
                 <h:form prependId="false">  
                     <p:growl id="messages"/>
                     <p:menubar id="menubar">
-                        <p:submenu label="Corpora">
+                        <p:submenu label="Corpus">
                             <p:menuitem value="Index Mbox" onclick="showBrowser()" disabled="#{!applicationBean.indexingEnabled || applicationBean.indexExists}"/>
                             <p:menuitem value="Review Annotations" actionListener="#{lazyView.submit}" update="tableform body" rendered="#{applicationBean.indexExists}"/>
                         </p:submenu>

@@ -47,7 +47,7 @@ public class Email implements Serializable {
     public Email() {
     }
 
-    private static Pair<String, String> getAddressPair(String addr) {
+    protected static Pair<String, String> getAddressPair(String addr) {
         int index = addr.lastIndexOf(" ");
         return index > 0
                 ? Pair.of(addr.substring(0, index).trim(), addr.substring(index + 1).trim())

@@ -69,6 +69,12 @@ import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.DefaultStreamedContent;
 import org.primefaces.model.StreamedContent;
 import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
+import static edu.umd.umiacs.clip.sis.MessageConverter.BCC;
+import static edu.umd.umiacs.clip.sis.MessageConverter.CC;
+import static edu.umd.umiacs.clip.sis.MessageConverter.FROM;
+import static edu.umd.umiacs.clip.sis.MessageConverter.TO;
+import java.io.InputStream;
+import java.nio.file.Files;
 import org.apache.lucene.util.BytesRefHash.MaxBytesLengthExceededException;
 
 @ManagedBean(eager = true)
@@ -110,7 +116,22 @@ public class ApplicationBean {
     private transient IndexSearcher is;
     private Map<String, Boolean> annotations;
     private final List<Pair<String, List<Pair<String, String>>>> lexicons = new ArrayList<>();
-    public static final String ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", System.getProperty("user.home", "/scratch0/enron")) + "/";
+    public static final String ROOT_PATH;
+
+    static {
+        Properties properties = new Properties();
+        try {
+            InputStream is = Thread.class.getResourceAsStream("/edu/umd/umiacs/clip/sis/paths.properties");
+            if (is != null) {
+                properties.load(is);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println(properties.entrySet());
+        ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", properties.getProperty("root_path", System.getProperty("user.home", "/scratch0/enron"))) + "/";
+    }
+
     private String indexPath = ROOT_PATH + "index";
     private String annotationsPath = ROOT_PATH + "annotations/";
     private String theme;
@@ -130,7 +151,6 @@ public class ApplicationBean {
 
     public ApplicationBean() {
         try {
-            System.err.println(indexPath);
             File indexFile = new File(indexPath);
             if (indexFile.exists()) {
                 Directory directory = FSDirectory.open(indexFile.toPath());
@@ -159,7 +179,7 @@ public class ApplicationBean {
         if (last.isPresent()) {
             loadAnnotations(last.get());
         } else {
-            setThemeReplacement("Default");
+            setThemeReplacement("General");
         }
     }
 
@@ -193,23 +213,55 @@ public class ApplicationBean {
 
     private static SparseVector getFeatures(Document doc, Map<Pair<String, String>, Integer> vocab, boolean isTraining) {
         SparseVector vector = new SparseVector();
-        Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT_PARSED).
+        String CONTENT = "Content";
+        StringBuilder sbContent = new StringBuilder();
+        Stream.of(SUBJECT, BODY_TEXT, ATTACHMENT_PARSED, CONTENT).
                 forEach(field -> {
-                    String content = doc.get(field);
-                    if (content != null && !content.isEmpty()) {
-                        content = LuceneUtils.enStem(content);
-                        if (!content.isEmpty()) {
-                            LangUtils.toFreqMap(content).entrySet().forEach(entry -> {
-                                Pair<String, String> key = Pair.of(field, entry.getKey());
-                                Integer index = vocab.get(key);
-                                if (index == null && isTraining) {
-                                    index = vocab.size();
-                                    vocab.put(key, index);
-                                }
-                                if (index != null) {
-                                    vector.add(index, sqrt(entry.getValue()));
-                                }
-                            });
+                    String content = field.equals(CONTENT) ? sbContent.toString().trim() : doc.get(field);
+                    if (content == null || content.isEmpty()) {
+                        return;
+                    }
+                    if (!field.equals(CONTENT)) {
+                        sbContent.append(content).append(" ");
+                    }
+                    content = LuceneUtils.enStem(content);
+                    if (!content.isEmpty()) {
+                        LangUtils.toFreqMap(content).entrySet().forEach(entry -> {
+                            Pair<String, String> key = Pair.of(field, entry.getKey());
+                            Integer index = vocab.get(key);
+                            if (index == null && isTraining) {
+                                index = vocab.size();
+                                vocab.put(key, index);
+                            }
+                            if (index != null) {
+                                vector.add(index, sqrt(entry.getValue()));
+                            }
+                        });
+                    }
+                });
+
+        String ADDRESS = "Address";
+        StringBuilder sbAddress = new StringBuilder();
+
+        Stream.of(FROM, TO, CC, BCC, ADDRESS).
+                forEach(field -> {
+                    String addresses = field.equals(ADDRESS) ? sbAddress.toString().trim() : doc.get(field);
+                    if (addresses == null || addresses.isEmpty()) {
+                        return;
+                    }
+                    if (!field.equals(ADDRESS)) {
+                        sbAddress.append(addresses).append("\n");
+                    }
+
+                    for (String address : addresses.split("\n")) {
+                        Pair<String, String> key = Pair.of(field, Email.getAddressPair(address).getRight());
+                        Integer index = vocab.get(key);
+                        if (index == null && isTraining) {
+                            index = vocab.size();
+                            vocab.put(key, index);
+                        }
+                        if (index != null) {
+                            vector.add(index, 1d);
                         }
                     }
                 });
