@@ -1,3 +1,4 @@
 /target/
 *.properties
 tomcat.*
+/target - Copy/
