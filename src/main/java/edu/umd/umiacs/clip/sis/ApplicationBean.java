@@ -116,24 +116,10 @@ public class ApplicationBean {
     private transient IndexSearcher is;
     private Map<String, Boolean> annotations;
     private final List<Pair<String, List<Pair<String, String>>>> lexicons = new ArrayList<>();
-    public static final String ROOT_PATH;
+    public final String ROOT_PATH;
 
-    static {
-        Properties properties = new Properties();
-        try {
-            InputStream is = Thread.class.getResourceAsStream("/edu/umd/umiacs/clip/sis/paths.properties");
-            if (is != null) {
-                properties.load(is);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        System.out.println(properties.entrySet());
-        ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", properties.getProperty("root_path", System.getProperty("user.home", "/scratch0/enron"))) + "/";
-    }
-
-    private String indexPath = ROOT_PATH + "index";
-    private String annotationsPath = ROOT_PATH + "annotations/";
+    private String indexPath;
+    private String annotationsPath;
     private String theme;
     private static final String VOCAB_NAME = "vocab.txt";
     private static final String MODEL_NAME = "model.svm";
@@ -150,6 +136,21 @@ public class ApplicationBean {
     private int progress;
 
     public ApplicationBean() {
+
+        Properties properties = new Properties();
+        try {
+            InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream("/edu/umd/umiacs/clip/sis/paths.properties");
+            if (in != null) {
+                properties.load(in);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.err.println(properties.entrySet());
+        ROOT_PATH = System.getenv().getOrDefault("SIS_PATH", properties.getProperty("root_path", System.getProperty("user.home", "/scratch0/enron"))) + "/";
+        indexPath = ROOT_PATH + "index";
+        annotationsPath = ROOT_PATH + "annotations/";
+
         try {
             File indexFile = new File(indexPath);
             if (indexFile.exists()) {
