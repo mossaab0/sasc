@@ -1,4 +1,4 @@
-# Search in Secrets
+# Search Among Sensitive Content
 
 ## System Requirements
 - To **compile** the app with all of its dependencies, you need to install **Java 8 JDK** and **Apache Maven**. [Here](https://www.twilio.com/blog/2017/01/install-java-8-apache-maven-google-web-toolkit-windows-10.html) is a tutorial that shows how to do so on Windows 10 (you do **not** need to do the third step of installing Google Web Toolkit).

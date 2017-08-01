@@ -67,6 +67,8 @@ set BASEDIR=%~dp0\..
 :repoSetup
 set REPO=target\repo
 
+set JAVA_OPTS=-Xmx1g
+
 
 if "%JAVACMD%"=="" set JAVACMD=java
 

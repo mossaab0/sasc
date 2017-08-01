@@ -7,7 +7,7 @@
       xmlns:c="http://java.sun.com/jsp/jstl/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
     <h:head>
-        <title>Search in Secrets</title>
+        <title>Search Among Sensitive Content</title>
         <script src="resources/jquery.easing.js" type="text/javascript"></script>
         <script src="resources/jqueryFileTree.js" type="text/javascript"></script>
         <link href="resources/jqueryFileTree.css" rel="stylesheet" type="text/css" media="screen" />
@@ -303,22 +303,23 @@
                 <h:form id="tableform">
                     <p:dataTable var="email" value="#{lazyView.lazyModel}" paginator="true" rows="10" paginatorPosition="bottom"
                                  paginatorTemplate="{RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {CurrentPageReport} {NextPageLink} {LastPageLink}"
+                                 currentPageReportTemplate="({startRecord}-{endRecord} of {totalRecords})"
                                  rowsPerPageTemplate="10,25,100" selectionMode="single" selection="#{lazyView.selectedEmail}" id="emailTable" lazy="true"
                                  scrollable="true" scrollHeight="200" rendered="#{applicationBean.indexExists}">
                         <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
                         <p:column headerText="Assessment" style="width: 132px; padding: 0; font-size: 0.95em">
-                            <p:selectBooleanButton value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.protectStyleClass}">
-                                <p:ajax update="growl tableform body" listener="#{lazyView.updateAnnotations(email)}" />
+                            <p:selectBooleanButton id="protect" value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.protectStyleClass}">
+                                <p:ajax update="growl body menubar protect release" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
-                            <p:selectBooleanButton value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.releaseStyleClass}">
-                                <p:ajax update="growl tableform body" listener="#{lazyView.updateAnnotations(email)}" />
+                            <p:selectBooleanButton id="release" value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.releaseStyleClass}">
+                                <p:ajax update="growl body menubar protect release" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
                         </p:column>
                         <p:column headerText="Score" sortBy="#{email.score}" width="10%">
                             <h:outputText value="#{email.score}"/>
                         </p:column>
                         <p:column headerText="From" sortBy="#{email.from}" width="20%">
-                            <h:outputText value="#{email.from.left}" title="#{email.from.right}" styleClass="email"/>
+                            <h:outputText value="#{email.from[0].left}" title="#{email.from[0].right}" styleClass="email"/>
                         </p:column>
                         <p:column headerText="Subject" sortBy="#{email.subject}" width="50%">
                             <h:outputText value="#{email.subject}"/>
@@ -331,6 +332,22 @@
             </p:layoutUnit>
             <p:layoutUnit position="center" id="center">
                 <h:panelGroup id="body" rendered="#{applicationBean.indexExists}">
+                    <h:outputText value="#{lazyView.selectedEmail.subject}" style="font-weight: bold"/>
+                    <p:separator/>
+                    <h:outputText value="From: " style="font-weight: bold"/>
+                    <ui:repeat var="address" value="#{lazyView.selectedEmail.from}">
+                        <p:commandLink value="#{address.left}" title="#{address.right}"
+                                       actionListener="#{lazyView.searchEmail(address.left, address.left)}"
+                                       update="tableform body" styleClass="email"/>
+                    </ui:repeat>
+
+                    <span style="float: right">
+                        <h:outputText value="Date: " style="font-weight: bold"/>
+                        <h:outputText value="#{lazyView.selectedEmail.date}"/>
+                    </span>
+
+                    <p:separator/>
+
                     <h:outputText value="To: " rendered="#{lazyView.selectedEmail.to.size()>0}" style="font-weight: bold"/>
                     <ui:repeat var="address" value="#{lazyView.selectedEmail.to}">
                         <p:commandLink value="#{address.left}" title="#{address.right}"
@@ -363,8 +380,11 @@
                     </h:form>
                     <p:separator rendered="#{lazyView.selectedEmail.files.size()>0}"/>
 
+                    <h:outputText style="white-space: pre-wrap" value="#{lazyView.selectedEmail.body}"/>
+                    <!--
                     <h:outputText value="#{lazyView.selectedEmail.html}" rendered="#{lazyView.selectedEmail.html != null}" escape="false"/>
                     <h:outputText style="white-space: pre-wrap" value="#{lazyView.selectedEmail.body}" rendered="#{lazyView.selectedEmail.html == null}"/>
+                    -->
                 </h:panelGroup>
             </p:layoutUnit>
         </p:layout>

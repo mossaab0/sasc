@@ -31,7 +31,7 @@ import org.apache.lucene.util.BytesRef;
 public class Email implements Serializable {
 
     private String id = "";
-    private Pair<String, String> from;
+    private List<Pair<String, String>> from = new ArrayList<>();
     private List<Pair<String, String>> to = new ArrayList<>();
     private List<Pair<String, String>> cc = new ArrayList<>();
     private List<Pair<String, String>> bcc = new ArrayList<>();
@@ -60,8 +60,12 @@ public class Email implements Serializable {
         body = doc.get(BODY_TEXT);
         html = doc.get(BODY_HTML);
         attachment = doc.get(ATTACHMENT_PARSED);
-        from = getAddressPair(doc.get(FROM));
-        String addresses = doc.get(TO);
+        String addresses = doc.get(FROM);
+        if (addresses != null && !addresses.isEmpty()) {
+            Stream.of(addresses.split("\n")).map(Email::getAddressPair).
+                    forEach(from::add);
+        }
+        addresses = doc.get(TO);
         if (addresses != null && !addresses.isEmpty()) {
             Stream.of(addresses.split("\n")).map(Email::getAddressPair).
                     forEach(to::add);
@@ -112,14 +116,14 @@ public class Email implements Serializable {
     /**
      * @return the from
      */
-    public Pair<String, String> getFrom() {
+    public List<Pair<String, String>> getFrom() {
         return from;
     }
 
     /**
      * @param from the from to set
      */
-    public void setFrom(Pair<String, String> from) {
+    public void setFrom(List<Pair<String, String>> from) {
         this.from = from;
     }
 

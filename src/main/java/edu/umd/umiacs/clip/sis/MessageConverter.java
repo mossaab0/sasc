@@ -126,12 +126,10 @@ public class MessageConverter {
             long sent = date == null ? 0 : date.getTime();
             document.add(new StoredField(DATE, sent));
             document.add(new NumericDocValuesField(DATE, sent));
-            Stream.of(message.getFrom()).
-                    forEach(address -> {
-                        Pair<String, String> converted = convertAddress(address);
-                        document.add(new Field(FROM, converted.getLeft() + " " + converted.getRight(), POSITIONS_STORED));
-                        document.add(new SortedDocValuesField(FROM, new BytesRef(converted.getLeft() + " " + converted.getRight())));
-                    });
+            String addresses = Stream.of(message.getFrom()).map(address -> convertAddress(address)).
+                    map(pair -> pair.getLeft() + " " + pair.getRight()).collect(joining("\n"));
+            document.add(new Field(FROM, addresses, POSITIONS_STORED));
+            document.add(new SortedDocValuesField(FROM, new BytesRef(addresses)));
             String[] messageid = message.getHeader(MESSAGE_ID);
             if (messageid != null && messageid.length > 0) {
                 document.add(new StringField(MESSAGE_ID, messageid[0], Store.YES));
@@ -167,7 +165,7 @@ public class MessageConverter {
                         }
                         list.add(pair);
                     }
-                    String addresses = list.stream().map(pair -> pair.getLeft() + " " + pair.getRight()).collect(joining("\n"));
+                    addresses = list.stream().map(pair -> pair.getLeft() + " " + pair.getRight()).collect(joining("\n"));
                     document.add(new Field(type.toString(), addresses, POSITIONS_STORED));
                 }
             }
