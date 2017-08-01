@@ -5,8 +5,8 @@
 - To **run** the app, you only need **Java 8 JRE**. That is you can copy the app from a machine (on which the app was compiled) to another machine that has the JRE without JDK nor Maven.
 
 ## Installation
-    git clone https://github.com/mossaab0/search-in-secrets.git
-    cd search-in-secrets
+    git clone https://github.com/mossaab0/sasc.git
+    cd sasc
     MAVEN_OPTS="-Xmx512m" mvn install
 
 ## Launching the Application
