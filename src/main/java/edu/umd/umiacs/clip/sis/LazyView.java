@@ -4,6 +4,11 @@ package edu.umd.umiacs.clip.sis;
  *
  * @author Mossaab Bagdouri
  */
+import static edu.umd.umiacs.clip.sis.Label.DEFER_PF;
+import static edu.umd.umiacs.clip.sis.Label.NO_ANNOTATION_PF;
+import static edu.umd.umiacs.clip.sis.Label.PROTECT_PF;
+import static edu.umd.umiacs.clip.sis.Label.RELEASE_PF;
+import static edu.umd.umiacs.clip.sis.Label.toSVM;
 import java.io.Serializable;
 import javax.annotation.PostConstruct;
 import javax.faces.application.FacesMessage;
@@ -78,7 +83,7 @@ public class LazyView implements Serializable {
 
     public void activeLearning() {
         float[] predictions;
-        if (!applicationBean.getAnnotations().isEmpty()) {
+        if (applicationBean.getAnnotations().values().stream().anyMatch(label -> label != DEFER_PF)) {
             applicationBean.train();
             applicationBean.predict();
             predictions = applicationBean.getPredictions();
@@ -92,12 +97,22 @@ public class LazyView implements Serializable {
     public void updateAnnotations(Email email) {
         this.selectedEmail = email;
         String message;
-        if (email.getAnnotation() == 0) {
+        if (email.getAnnotation() == NO_ANNOTATION_PF) {
             applicationBean.getAnnotations().remove(email.getId());
             message = "Annotation removed.";
         } else {
-            applicationBean.getAnnotations().put(email.getId(), email.getAnnotation() == 1);
-            message = "Email " + (applicationBean.getAnnotations().get(email.getId()) ? "protected" : "released") + ".";
+            applicationBean.getAnnotations().put(email.getId(), toSVM(email.getAnnotation()));
+            switch (email.getAnnotation()) {
+                case PROTECT_PF:
+                    message = "Email protected.";
+                    break;
+                case RELEASE_PF:
+                    message = "Email released.";
+                    break;
+                default:
+                    message = "No decision made.";
+                    break;
+            }
         }
         applicationBean.saveAnnotations();
         FacesMessage msg = new FacesMessage(message);

@@ -58,12 +58,12 @@
                 border: 1px solid #a8a8a8 !important;
             }
 
-            .protect {
+            .release {
                 background: #00ff7f -webkit-gradient(linear,left top,left bottom,from(rgba(255,255,255,0.8)),to(rgba(255,255,255,0))) !important;
                 border: 1px solid #a8a8a8 !important;
             }
 
-            .release {
+            .protect {
                 background: #f08080 -webkit-gradient(linear,left top,left bottom,from(rgba(255,255,255,0.8)),to(rgba(255,255,255,0))) !important;
                 border: 1px solid #a8a8a8 !important;
             }
@@ -307,24 +307,27 @@
                                  rowsPerPageTemplate="10,25,100" selectionMode="single" selection="#{lazyView.selectedEmail}" id="emailTable" lazy="true"
                                  scrollable="true" scrollHeight="200" rendered="#{applicationBean.indexExists}">
                         <p:ajax event="rowSelect" listener="#{lazyView.onRowSelect}" update="body"/>
-                        <p:column headerText="Assessment" style="width: 132px; padding: 0; font-size: 0.95em">
+                        <p:column headerText="Assessment" style="width: 186px; padding: 0; font-size: 0.95em">
                             <p:selectBooleanButton id="protect" value="#{email.protect}" onLabel="Protect" offLabel="Protect" styleClass="#{email.protectStyleClass}">
-                                <p:ajax update="growl body menubar protect release" listener="#{lazyView.updateAnnotations(email)}" />
+                                <p:ajax update="growl body menubar protect defer release" listener="#{lazyView.updateAnnotations(email)}" />
+                            </p:selectBooleanButton>
+                            <p:selectBooleanButton id="defer" value="#{email.defer}" onLabel="Defer" offLabel="Defer" styleClass="#{email.deferStyleClass}">
+                                <p:ajax update="growl body menubar protect defer release" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
                             <p:selectBooleanButton id="release" value="#{email.release}" onLabel="Release" offLabel="Release" styleClass="#{email.releaseStyleClass}">
-                                <p:ajax update="growl body menubar protect release" listener="#{lazyView.updateAnnotations(email)}" />
+                                <p:ajax update="growl body menubar protect defer release" listener="#{lazyView.updateAnnotations(email)}" />
                             </p:selectBooleanButton>
                         </p:column>
-                        <p:column headerText="Score" sortBy="#{email.score}" width="10%">
+                        <p:column headerText="Score" sortBy="#{email.score}" style="width: 70px">
                             <h:outputText value="#{email.score}"/>
                         </p:column>
-                        <p:column headerText="From" sortBy="#{email.from}" width="20%">
+                        <p:column headerText="From" sortBy="#{email.from}" style="width: 200px">
                             <h:outputText value="#{email.from[0].left}" title="#{email.from[0].right}" styleClass="email"/>
                         </p:column>
-                        <p:column headerText="Subject" sortBy="#{email.subject}" width="50%">
+                        <p:column headerText="Subject" sortBy="#{email.subject}">
                             <h:outputText value="#{email.subject}"/>
                         </p:column>
-                        <p:column headerText="Date" sortBy="#{email.date}" width="20%">
+                        <p:column headerText="Date" sortBy="#{email.date}" style="width: 240px">
                             <h:outputText value="#{email.date}"/>
                         </p:column>
                     </p:dataTable>
@@ -380,11 +383,8 @@
                     </h:form>
                     <p:separator rendered="#{lazyView.selectedEmail.files.size()>0}"/>
 
-                    <h:outputText style="white-space: pre-wrap" value="#{lazyView.selectedEmail.body}"/>
-                    <!--
                     <h:outputText value="#{lazyView.selectedEmail.html}" rendered="#{lazyView.selectedEmail.html != null}" escape="false"/>
                     <h:outputText style="white-space: pre-wrap" value="#{lazyView.selectedEmail.body}" rendered="#{lazyView.selectedEmail.html == null}"/>
-                    -->
                 </h:panelGroup>
             </p:layoutUnit>
         </p:layout>

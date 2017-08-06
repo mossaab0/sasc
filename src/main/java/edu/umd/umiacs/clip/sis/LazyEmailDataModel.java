@@ -50,18 +50,18 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
     private String q;
     private final List<Email> data = new ArrayList<>();
     private final Map<String, Email> map = new HashMap<>();
-    private final Map<String, Boolean> annotations;
+    private final Map<String, Integer> annotations;
     private float[] predictions;
     private Email firstEmail;
     private boolean activeLearning;
 
-    public LazyEmailDataModel(IndexSearcher is, Map<String, Boolean> annotations, String q) {
+    public LazyEmailDataModel(IndexSearcher is, Map<String, Integer> annotations, String q) {
         this.is = is;
         this.q = q;
         this.annotations = annotations;
     }
 
-    public LazyEmailDataModel(IndexSearcher is, Map<String, Boolean> annotations, float[] predictions, boolean activeLearning) {
+    public LazyEmailDataModel(IndexSearcher is, Map<String, Integer> annotations, float[] predictions, boolean activeLearning) {
         this.is = is;
         this.predictions = predictions;
         this.annotations = annotations;
@@ -142,13 +142,15 @@ public class LazyEmailDataModel extends LazyDataModel<Email> {
         map.clear();
         List<Integer> candidates = range(0, predictions.length).boxed().
                 map(i -> Pair.of(i, Math.abs(predictions[i]))).
-                sorted(comparing(Pair::getRight)).map(Pair::getLeft).
+                sorted(comparing(Pair::getRight)).
+                map(Pair::getLeft).
                 collect(toList());
-        for (int i = 0; i < candidates.size(); i++) {
+        
+        for (int candidate : candidates) {
             try {
-                firstEmail = new Email(annotations, is.doc(candidates.get(i)));
+                firstEmail = new Email(annotations, is.doc(candidate));
                 if (!annotations.containsKey(firstEmail.getId())) {
-                    firstEmail.setScore(predictions[candidates.get(i)]);
+                    firstEmail.setScore(predictions[candidate]);
                     data.add(firstEmail);
                     map.put(firstEmail.getId(), firstEmail);
                     break;

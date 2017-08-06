@@ -1,5 +1,6 @@
 package edu.umd.umiacs.clip.sis;
 
+import static edu.umd.umiacs.clip.sis.Label.toPF;
 import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_BINARY;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BCC;
 import static edu.umd.umiacs.clip.sis.MessageConverter.BODY_HTML;
@@ -23,6 +24,10 @@ import org.apache.lucene.document.Document;
 import static edu.umd.umiacs.clip.sis.MessageConverter.ATTACHMENT_PARSED;
 import static edu.umd.umiacs.clip.sis.MessageConverter.FILE_NAME;
 import org.apache.lucene.util.BytesRef;
+import static edu.umd.umiacs.clip.sis.Label.DEFER_PF;
+import static edu.umd.umiacs.clip.sis.Label.NO_ANNOTATION_PF;
+import static edu.umd.umiacs.clip.sis.Label.PROTECT_PF;
+import static edu.umd.umiacs.clip.sis.Label.RELEASE_PF;
 
 /**
  *
@@ -40,7 +45,7 @@ public class Email implements Serializable {
     private String body = "";
     private String html = "";
     private String attachment = "";
-    private int annotation = 0;
+    private int annotationPF = NO_ANNOTATION_PF;
     private Date date;
     private float score;
 
@@ -54,7 +59,7 @@ public class Email implements Serializable {
                 : Pair.of(addr, addr);
     }
 
-    public Email(Map<String, Boolean> annotations, Document doc) {
+    public Email(Map<String, Integer> annotations, Document doc) {
         id = doc.get(MESSAGE_ID);
         subject = doc.get(SUBJECT);
         body = doc.get(BODY_TEXT);
@@ -95,7 +100,7 @@ public class Email implements Serializable {
         }
 
         if (annotations.get(id) != null) {
-            this.annotation = annotations.get(id) ? 1 : 2;
+            this.annotationPF = toPF(annotations.get(id));
         }
     }
 
@@ -215,14 +220,14 @@ public class Email implements Serializable {
      * @return the annotation
      */
     public int getAnnotation() {
-        return annotation;
+        return annotationPF;
     }
 
     /**
      * @param annotation the annotation to set
      */
     public void setAnnotation(int annotation) {
-        this.annotation = annotation;
+        this.annotationPF = annotation;
     }
 
     /**
@@ -254,37 +259,39 @@ public class Email implements Serializable {
     }
 
     public boolean isProtect() {
-        return annotation == 1;
+        return annotationPF == PROTECT_PF;
     }
 
     public void setProtect(boolean val) {
-        annotation = val ? 1 : 0;
+        annotationPF = val ? PROTECT_PF : NO_ANNOTATION_PF;
+    }
+
+    public boolean isDefer() {
+        return annotationPF == DEFER_PF;
+    }
+
+    public void setDefer(boolean val) {
+        annotationPF = val ? DEFER_PF : NO_ANNOTATION_PF;
     }
 
     public boolean isRelease() {
-        return annotation == 2;
+        return annotationPF == RELEASE_PF;
     }
 
     public void setRelease(boolean val) {
-        annotation = val ? 2 : 0;
+        annotationPF = val ? RELEASE_PF : NO_ANNOTATION_PF;
     }
 
     public String getProtectStyleClass() {
-        switch (annotation) {
-            case 1:
-                return "protect";
-            default:
-                return "inactive";
-        }
+        return annotationPF == PROTECT_PF ? "protect" : "inactive";
+    }
+
+    public String getDeferStyleClass() {
+        return annotationPF == DEFER_PF ? "defer" : "inactive";
     }
 
     public String getReleaseStyleClass() {
-        switch (annotation) {
-            case 2:
-                return "release";
-            default:
-                return "inactive";
-        }
+        return annotationPF == RELEASE_PF ? "release" : "inactive";
     }
 
     /**
